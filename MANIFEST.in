@@ -1,0 +1,18 @@
+include MANIFEST.in
+include requirements.txt
+include *.json
+include *.md
+include *.py
+include *.txt
+recursive-include temporal *.css
+recursive-include temporal *.csv
+recursive-include temporal *.html
+recursive-include temporal *.ico
+recursive-include temporal *.js
+recursive-include temporal *.json
+recursive-include temporal *.md
+recursive-include temporal *.png
+recursive-include temporal *.py
+recursive-include temporal *.svg
+recursive-include temporal *.txt
+recursive-exclude temporal *.pyc
