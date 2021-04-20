@@ -16,10 +16,11 @@ cd <your_bench_directory>
 source env
 cd apps
 git clone https://github.com/Datahenge/temporal
+cd temporal
 pip install -e .
 deactivate
+cd <your_bench_directory>
 bench --site <your_site_name> install-app temporal
-
 ```
 
 #### License
