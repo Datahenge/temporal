@@ -3,9 +3,11 @@
 An ERPNext application that integrates with Redis to rapidly provide calendar information.
 
 ### Concept
-The Earth's temporal calendar (years, months, weeks, days) is static information.  We know that May 4th in the year 2542 will be a Friday, and is the 124th day of that year.
+The Earth's temporal calendar (years, months, weeks, days) is static information.  We know that May 4th in year 2542 will be a Friday, and will be the 124th day of that year.
 
-In standard Python, we have to call many functions to work with dates.  Instead of repeatedly calling Python functions to work with dates, why not store everything one-time in the Redis Cache?  Then just use one-line Python functions to retrieve information as-needed.
+ERP systems frequently need date-based information.  One option is to repeatedly call Python functions and perform calculations.  This is inefficient and leads to unnecessary coding.
+
+The purpose of Temporal is load all calendar data into the Redis Cache at startup.  This includes calculations such as `Week Number`, `Day Number in Year`, `Day of Week`.  Developers can now rapidly fetch time-based information with short "GET" calls to Redis.
 
 ### Installation
 Using Bench:
