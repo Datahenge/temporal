@@ -1,6 +1,6 @@
 ## Temporal: Time after Time
 
-An ERPNext application that integrates with Redis to rapidly provide calendar information.
+An ERPNext [App](https://frappeframework.com/docs/user/en/basics/apps) that integrates with Redis to rapidly provide calendar information.
 
 ### Concept
 The Earth's temporal calendar (years, months, weeks, days) is static information.  We know that May 4th in year 2542 will be a Friday, and will be the 124th day of that year.
