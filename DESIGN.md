@@ -1,15 +1,16 @@
 ## Regarding Calendars and other Temporal features.
 
 ### Testing Redis
+I highly recommend downloading [Another Redis Desktop Manager](https://www.electronjs.org/apps/anotherredisdesktopmanager)
 
-You can login using this command:
+Otherwise, you can always examine a Redis database using the `redis-cli` CLI application:
 ```
-redis-cli -p 13003
+$  redis-cli -p 13003
 ```
 
-You can also use `cat` and pipes, as shown here:
+If you already know your Redis command, you can `cat` and pipes too:
 ```
-echo 'SMEMBERS v12testdb|temporal/calyears' | redis-cli -p 13003
+$  echo 'SMEMBERS v12testdb|temporal/calyears' | redis-cli -p 13003
 ```
 
 ### Testing Temporal
@@ -51,32 +52,32 @@ The following rules are observed when calculating a "Week Number" using Google D
 2. Weeks begin on Sunday, so Wednesday is the middle day of a week.
 3. Week #1 will always contain January 1st.
 
-For example, in the week snippets below, every one of these weeks is Week #1
+For example.  Each hypothetical week below would be considered "Week #1"
 ```
--------------------------
-S	M	T	W	T	F	S
--------------------------
-26  27  28  29  30  31  1
-27  28  29  30  31  1   2
-28  29  30  31  1   2   3
-29  30  31  1   2   3   4
-30  31  1   2   3   4   5
-31  1   2   3   4   5   6
-1   2   3   4   5   6   7
+--------------------------------
+S    M    T    W    T    F    S
+--------------------------------
+26   27   28   29   30   31   1
+27   28   29   30   31   1    2
+28   29   30   31   1    2    3
+29   30   31   1    2    3    4
+30   31   1    2    3    4    5
+31   1    2    3    4    5    6
+1    2    3    4    5    6    7
 ```
 
 3. Week #L (final week) contains December 25th.
 ```
--------------------------
-S	M	T	W	T	F	S
--------------------------
-19	20	21	22	23	24	25
-20	21	22	23	24	25	26
-21	22	23	24	25	26  27
-22	23	24	25	26  27  28
-23	24	25	26  27  28  29
-24	25	26  27  28  29  30
-25	26  27  28  29  30  31
+--------------------------------
+S    M    T    W    T    F    S
+--------------------------------
+19   20   21   22   23   24   25
+20   21   22   23   24   25   26
+21   22   23   24   25   26   27
+22   23   24   25   26   27   28
+23   24   25   26   27   28   29
+24   25   26   27   28   29   30
+25   26   27   28   29   30   31
 ```
 
 ### Snippets
