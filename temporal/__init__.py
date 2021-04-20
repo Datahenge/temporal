@@ -1,22 +1,20 @@
+""" temporal/temporal/__init__.py """
+
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-
-__version__ = '0.0.1'
-
-""" temporal/temporal/__init__.py """
 
 # Standard Library
 import json
 import datetime
-from datetime import date
+from datetime import timedelta
+from datetime import date as dtdate
 from typing import Dict, Tuple, Sequence
 
 # Third Party
 import dateutil
 from dateutil.rrule import rrule, WEEKLY
-from dateutil.rrule import SU, MO, TU, WE, TH, FR, SA	
+from dateutil.rrule import SU, MO, TU, WE, TH, FR, SA
 from temporal import redis as temporal_redis  # alias to distinguish from Third Party module
-
 # from six import iteritems
 
 # Frappe modules.
@@ -24,6 +22,7 @@ import frappe
 from frappe import _, throw, msgprint
 
 # Constants
+__version__ = '0.0.1'
 EPOCH_YEAR = 2020
 END_YEAR = 2050
 
@@ -36,9 +35,10 @@ class Week():
 	""" A calendar week, starting on Sunday, where the week containing January 1st is always week #1 """
 	def __init__(self, week_number, set_of_days, date_start, date_end):
 		self.week_number = week_number
-		self.set_of_days = set_of_days
+		self.days = set_of_days
 		self.date_start = date_start
 		self.date_end = date_end
+
 
 class Builder():
 	""" This class is used to build the temporal data (which we're storing in Redis) """
@@ -58,10 +58,11 @@ class Builder():
 
 	@staticmethod
 	def build_all(epoch_year=EPOCH_YEAR, end_year=END_YEAR, start_of_week='SUN', verbose=False):
-		instance = Builder(epoch_year=epoch_year, end_year=end_year, 
+		instance = Builder(epoch_year=epoch_year, end_year=end_year,
 		                   start_of_week=start_of_week, verbose=verbose)
 		instance.build_years()
 		instance.build_weeks()
+		instance.build_days()
 
 	def build_years(self):
 		""" Calculate years and write to Redis. """
@@ -69,9 +70,9 @@ class Builder():
 		for year in self.years:
 			self.build_year(year)
 
-	def build_year(self, year, verbose=False):
-		date_start = date(year,1,1)
-		date_end = date(year,12,31)
+	def build_year(self, year):
+		date_start = dtdate(year, 1, 1)
+		date_end = dtdate(year,12,31)
 		days_in_year = (date_end - date_start).days + 1
 		jan_one_dayname = date_start.strftime("%a").upper()
 		year_dict = {}
@@ -85,80 +86,143 @@ class Builder():
 		temporal_redis.write_single_year(year_dict, self.verbose)
 
 	def build_days(self):
-		start_date = date(self.epoch_year,1,1)  # could also do self.years[0]
-		end_date = date(self.end_year, 12, 31)  # could also do self.years[-1]
-		for date in range(start_date, end_date):
-			print(f"Processing day {date}...")
+		start_date = dtdate(self.epoch_year,1,1)  # could also do self.years[0]
+		end_date = dtdate(self.end_year, 12, 31)  # could also do self.years[-1]
+
+		count = 0
+		for date_foo in Internals.date_range(start_date, end_date):
+			day_dict = {}
+			day_dict['date'] = date_foo
+			day_dict['date_as_string'] = day_dict['date'].strftime("%Y-%m-%d")
+			day_dict['weekday_name'] =  date_foo.strftime("%A")
+			day_dict['weekday_name_short'] = date_foo.strftime("%a")
+			day_dict['day_of_month'] =  date_foo.strftime("%d")
+			day_dict['month_in_year_int'] = date_foo.strftime("%m")
+			day_dict['month_in_year_str'] = date_foo.strftime("%B")
+			day_dict['year'] = date_foo.year
+			day_dict['day_of_year'] = date_foo.strftime("%j")
+			if date_foo >= dtdate(year=date_foo.year, month=12, day=26):  # December 26th or later?
+				day_dict['week_year'] = date_foo.year + 1
+			else:
+				day_dict['week_year'] = date_foo.year
+			day_dict['week_number'] = Internals.date_to_week_number(date_foo)
+			day_dict['index_in_week'] = int(date_foo.strftime("%w")) + 1  # 1-based indexing
+			# Write this dictionary in the Redis cache:
+			temporal_redis.write_single_day(day_dict)
+			count += 1
+		if self.verbose:
+			print(f"\u2713 Created {count} Temporal Day keys in Redis.")
 
 	def build_weeks(self):
 		""" Build all the weeks between Epoch Date and End Date """
-		for year in self.years:
-			self.build_week(year)
+		# Begin on January 1st
+		january_first = dtdate(self.epoch_year,1,1)
+		january_index = int(january_first.strftime("%w"))
 
-	def build_week(self, year):
-		date_week_start = date(year, 1, 1)
-		date_week_end = list(rrule(WEEKLY, byweekday=SA, dtstart=date(2021,1,1), until=date(2021,12,31)))[0]
+		week_start_date = january_first - timedelta(days=january_index)  # if January 1st is not Sunday, back up.
+		week_end_date = None
+		week_number = None
 
+		print(f"Processing weeks starting with date: {week_start_date}")
+		count = 0
+
+		while True:
+			# Stop once week_start_date's year exceeds the Maximum Year.
+			if week_start_date.year > self.end_year:
+				break
+			week_end_date = week_start_date + timedelta(days=6)
+			if (week_start_date.day == 1) and (week_start_date.month == 1):
+				# Sunday is January 1st, it's a new year.
+				week_number = 1
+			elif week_end_date.year > week_start_date.year:
+				# January 1st falls somewhere inside the week
+				week_number = 1
+			else:
+				week_number += 1
+			tuple_of_dates = tuple(list(Internals.date_range(week_start_date, week_end_date)))
+			week_dict = {}
+			week_dict['year'] = week_end_date.year
+			week_dict['week_number'] = week_number
+			week_dict['week_start'] = week_start_date
+			week_dict['week_end'] = week_end_date
+			week_dict['week_dates'] = tuple_of_dates
+			temporal_redis.write_single_week(week_dict)
+			# Increment to the Next Week
+			week_start_date = week_start_date + timedelta(days=7)
+			count += 1
+
+		# Loop complete.
+		if self.verbose:
+			print(f"\u2713 Created {count} Temporal Week keys in Redis.")
 
 class Internals():
+	""" Internal functions that should not be called outside of Temporal. """
 	@staticmethod
 	def date_to_week_number(any_date):
-		""" Given a date, return the corresponding week number."""
+		""" Given a date, return the corresponding week number.
+			This uses a special calculation, that prevents "partial weeks"
+		"""
 		if not isinstance(any_date, datetime.date):
 			raise TypeError("Argument must be of type 'datetime.date'")
-		# Note: For weeks beginning with Sunday, use %V.
-		# If we need weeks beginning with Monday, that's %U
-		return int(any_date.strftime("%V"))
+		year_start_date = dtdate(any_date.year, 1, 1)
+
+		year_start_pos_in_week = int(year_start_date.strftime("%w")) + 1
+		date_pos_in_year = int(any_date.strftime("%j")) # e.g. April 1st is the 109th day in year 2020.
+		# Formula
+		# (( day_in_year - pos_of_Jan_1st ) / 7 ) + 1
+		week_number = int((date_pos_in_year - year_start_pos_in_week) / 7 ) + 1
+		return week_number
 
 	@staticmethod
 	def get_year_from_frappedate(frappe_date):
 		return int(frappe_date[:4])
 
+	@staticmethod
+	def date_range(start_date, end_date):
+		""" Generator for an inclusive range of dates.
+		    It's pretty silly this isn't part of Python Standard Library or datetime
+		"""
+		# Important to add +1, otherwise the range is -not- inclusive.
+		for number_of_days in range(int((end_date - start_date).days) + 1):
+			yield start_date + timedelta(number_of_days)
+
 # ----------------
-# Public Functions -->
+# Public Functions
 # ----------------
 
 def get_calendar_years():
 	""" Fetch calendar years from Redis. """
-	return temporal_redis.redis_get_calendar_years()
+	return temporal_redis.read_years()
 
 def get_calendar_year(year):
-	return temporal_redis.redis_get_calendar_year(year)
+	""" Fetch a Year dictionary from Redis. """
+	return temporal_redis.read_single_year(year)
 
-def get_week_by_weeknum(week_number):
-	""" Fetch a week from Redis, and build a Named Tuple 'Week' """
+def date_to_datekey(any_date):
+	date_as_string = any_date.strftime("%Y-%m-%d")
+	return f"temporal/day/{date_as_string}"
 
-	week_start = datetime.strptime('2011 22 1', '%G %V %u')
-	week_end = week_start + timedelta(days=6)
-	return (week_number, week_start, week_end)
+def week_to_weekkey(year, week_number):
+	if not isinstance(week_number, int):
+		raise TypeError("Argument 'week_number' should be a Python integer.")
+	week_as_string = str(week_number).zfill(2)
+	return f"temporal/week/{year}-{week_as_string}"
 
-def get_week_by_anydate(anydate):
-	""" Returns a named Tuple p = Namep = NamedTuple('Point', [('x', float), ('y', float)])dTuple('Point', [('x', float), ('y', float)])
-	
-	tuple of Week Number, Start Date, End Date. """
+def get_date(any_date):
+	""" Fetch a Day dictionary from Redis """
+	return temporal_redis.read_single_day(date_to_datekey(any_date))
 
-	p = NamedTuple('Point', [('x', float), ('y', float)])
+def get_week_by_weeknum(year, week_number):
+	""" Fetch a Week dictionary from Redis. """
+	if not isinstance(week_number, int):
+		raise TypeError("Argument 'week_number' must be an integer.")
+	week_number_str = str(week_number).zfill(2)
+	week_key = f"{year}-{week_number_str}"
+	return temporal_redis.read_single_week(week_key)
 
-	if not isinstance(as_of_date, datetime.date):
-		raise TypeError("Expected argument 'as_of_date' to be of type 'datetime.date'")
-	week_number = int(as_of_date.strftime("%V"))
-	week_start = dt - timedelta(days=as_of_date.weekday())
-	week_end = start + timedelta(days=6)
-	return (week_number, week_start, week_end)
-
-
-# -----------------
-# Day Functions
-# -----------------
-
-def date_to_weekday_name(any_date):
-	if not isinstance(any_date, datetime.date):
-		raise TypeError("Argument 'any_date' should be a 'datetime.date'")
-	return any_date.strftime('%A')
-
-def date_to_weekday_position(any_date):
-	if not any_date:
-		raise ValueError("Argument 'any_date' is mandatory.")
-	if not isinstance(any_date, datetime.date):
-		raise TypeError("Argument 'any_date' should be a 'datetime.date'")
-	return int(any_date.strftime('%w')) + 1
+def get_week_by_anydate(any_date):
+	""" Returns a class Week """
+	if not isinstance(any_date, dtdate):
+		raise TypeError("Expected argument 'any_date' to be of type 'datetime.date'")
+	date_dict = get_date(any_date)  # fetch from Redis
+	return get_week_by_weeknum(date_dict['week_year'], date_dict['week_number'])

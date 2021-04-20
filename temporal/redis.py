@@ -1,11 +1,18 @@
+""" temporal/temporal/redis.py """
+
 # ----------------
 # Redis Functions
 # ----------------
-from frappe import cache, msgprint, safe_decode
-from six import iteritems
+
+# Standard Library
 from pprint import pprint
 
-#
+# Third Party
+from six import iteritems
+
+# Frappe
+from frappe import cache, msgprint, safe_decode
+
 #  Redis Data Model:
 #  I'm choosing to uses forward slash (/) to build Compound Keys
 
@@ -16,20 +23,6 @@ from pprint import pprint
 #  calyear:2020:wk1 : { 'firstday': '4/1/2020', lastday: '4/7/2020' }
 #  calyear:2020:12:26 : { 'week' : 34 , 'dayname': Monday }
 
-
-"""
-	doctype_map = cache.hget(cache_key, name)
-
-	if doctype_map:
-		# cached, return
-		items = json.loads(doctype_map)
-
-	cache = frappe.cache()
-	cache_key = frappe.scrub(doctype) + '_map'
-
-        cache.delete_value(key)
-	cache.hset(cache_key, doctype, json.dumps(items))
-"""
 
 def redis_hash_to_dict(redis_hash, mandatory_arg=True):
 	if not redis_hash:
@@ -42,53 +35,119 @@ def redis_hash_to_dict(redis_hash, mandatory_arg=True):
 		raise ValueError(f"Failed to create dictionary for Redis hash = {redis_hash}")
 	return ret
 
+# ------------
+# WRITING TO REDIS
+# ------------
 
 def write_years(years_tuple, verbose=False):
 	""" Create Redis list of Calendar Years. """
 	if not isinstance(years_tuple, tuple):
-		raise TypeError("Argument 'year_set' should be a Python Set.")
-	cache().delete_key("temporal/calyears")
+		raise TypeError("Argument 'years_tuple' should be a Python Tuple.")
+	cache().delete_key("temporal/years")
 	for year in years_tuple:
-		cache().sadd("temporal/calyears", year)  # add to set.
+		cache().sadd("temporal/years", year)  # add to set.
 	if verbose:
-		msgprint(f"Calendar Years: {read_years()}")
+		msgprint(f"Temporal Years: {read_years()}")
 
 def write_single_year(year_dict, verbose=False):
 	""" Store a year in Redis as a Hash. """
 	if not isinstance(year_dict, dict):
 		raise TypeError("Argument 'year_dict' should be a Python Dictionary.")
-	year_key = f"temporal/calyear/{year_dict['year']}"
+	year_key = f"temporal/year/{year_dict['year']}"
 	cache().delete_key(year_key)
 	for key,value in year_dict.items():
 		cache().hset(year_key, key, value)
 	if verbose:
-		print("Created calendar year '{year_key}' in Redis:\n")
-		pprint(read_single_year(year_dict['year']), depth=6)
+		print(f"\u2713 Created temporal year '{year_key}' in Redis.")
+		# pprint(read_single_year(year_dict['year']), depth=6)
 
-def write_weeks(verbose=False):
-	""" Create weeks in Redis for each year since the epoch. """
-	for year in get_calendar_years():
-		if verbose:
-			msgprint(f"Creating calendar weeks in Redis for year {year}")
-		date_year_start = date(year, 1, 1)
-		date_year_end = date(year, 12, 31)
-		date_week_start = date(year, 1, 1)
-		date_week_end = list(rrule(WEEKLY, byweekday=SA, dtstart=date(2021,1,1), until=date(2021,12,31)))[0]
 
-def write_single_week(week_key, week_dict, verbose=False):
-	cache().hset(week_key, "year", year)
-	cache().hset(week_key, "date_start", startdate.strftime("%m/%d/%Y"))
-	cache().hset(week_key, "date_end", enddate.strftime("%m/%d/%Y"))
-	cache().hset(week_key, "days_in_year", days_in_year)
+def write_weeks(weeks_tuple, verbose=False):
+	""" Create Redis list of Weeks. """
+	if not isinstance(weeks_tuple, tuple):
+		raise TypeError("Argument 'weeks_tuple' should be a Python Tuple.")
+	cache().delete_key("temporal/weeks")
+	for week in weeks_tuple:
+		cache().sadd("temporal/weeks", week)  # add to set.
+	if verbose:
+		msgprint(f"Temporal Weeks: {read_weeks()}")
+
+
+def write_single_week(week_dict, verbose=False):
+	""" Store a Week in Redis as a hash. """
+	if not isinstance(week_dict, dict):
+		raise TypeError("Argument 'week_dict' should be a Python Dictionary.")
+	week_number_as_string = str(week_dict['week_number']).zfill(2)
+	week_key = f"temporal/week/{week_dict['year']}-{week_number_as_string}"
+	cache().delete_key(week_key)
+
+	for key,value in week_dict.items():
+		cache().hset(week_key, key, value)
+	if verbose:
+		print("Created a Temporal Week '{week_key}' in Redis:\n")
+		pprint(read_single_week(week_dict[week_key]), depth=6)
+
+
+def write_single_day(day_dict):
+	""" Store a Day in Redis as a hash. """
+	if not isinstance(day_dict, dict):
+		raise TypeError("Argument 'day_dict' should be a Python Dictionary.")
+
+	# For rationality, key format will be YYYY-MM-DD
+	date_as_string = day_dict['date'].strftime("%Y-%m-%d")
+	day_key = f"temporal/day/{date_as_string}"
+	cache().delete_key(day_key)
+
+	for key,value in day_dict.items():
+		if key == 'date':
+			# No point storing datetime.date; just store a sortable date string: YYYY-MM-DD
+			cache().hset(day_key, key, date_as_string)
+		else:
+			cache().hset(day_key, key, value)
+
+# ------------
+# READING FROM REDIS
+# ------------
 
 def read_years():
-	""" Returns a Python Set containing year integers. """
-	year_tuple = tuple( int(foo) for foo in cache().smembers('temporal/calyears') )
+	""" Returns a Python Tuple containing year integers. """
+	year_tuple = tuple( int(year) for year in cache().smembers('temporal/years') )
 	return sorted(year_tuple)  # redis does not naturally store Sets as sorted.
+
 
 def read_single_year(year):
 	""" Returns a Python Dictionary containing year-by-year data. """
-	redis_hash =  cache().hgetall(f"temporal/calyear/{year}")
+	redis_hash =  cache().hgetall(f"temporal/year/{year}")
+	if not redis_hash:
+		return None
+	return redis_hash_to_dict(redis_hash)
+
+
+def read_days():
+	""" Returns a Python Tuple containing Day Keys. """
+	day_tuple = tuple( day_key for day_key in cache().smembers('temporal/days') )
+	return sorted(day_tuple)  # Redis Sets are not stored in the Redis database.
+
+
+def read_single_day(day_key):
+	""" Returns a Python Dictionary containing a Single Day. """
+	if not day_key.startswith('temporal'):
+		raise ValueError("All Redis key arguments should begin with 'temporal'")
+	redis_hash =  cache().hgetall(day_key)
+	if not redis_hash:
+		return None
+	return redis_hash_to_dict(redis_hash)
+
+
+def read_weeks():
+	""" Returns a Python Tuple containing Week Keys. """
+	week_tuple = tuple( week for week in cache().smembers('temporal/weeks') )
+	return sorted(week_tuple)  # redis does not naturally store Sets as sorted.
+
+
+def read_single_week(week_key):
+	""" Returns a Python Dictionary containing a Single Week. """
+	redis_hash =  cache().hgetall(f"temporal/week/{week_key}")
 	if not redis_hash:
 		return None
 	return redis_hash_to_dict(redis_hash)
