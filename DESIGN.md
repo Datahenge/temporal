@@ -1,15 +1,16 @@
 ## Regarding Calendars and other Temporal features.
 
 ### Testing Redis
+I highly recommend downloading [Another Redis Desktop Manager](https://www.electronjs.org/apps/anotherredisdesktopmanager)
 
-You can login using this command:
+Otherwise, you can always examine a Redis database using the `redis-cli` CLI application:
 ```
-redis-cli -p 13003
+$  redis-cli -p 13003
 ```
 
-You can also use `cat` and pipes, as shown here:
+If you already know your Redis command, you can `cat` and pipes too:
 ```
-echo 'SMEMBERS v12testdb|temporal/calyears' | redis-cli -p 13003
+$  echo 'SMEMBERS v12testdb|temporal/calyears' | redis-cli -p 13003
 ```
 
 ### Testing Temporal
