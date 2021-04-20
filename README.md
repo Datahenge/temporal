@@ -2,6 +2,11 @@
 
 An ERPNext application that integrates with Redis to rapidly provide calendar information.
 
+### Concept
+The Earth's temporal calendar (years, months, weeks, days) is static information.  We know that May 4th in the year 2542 will be a Friday, and is the 124th day of that year.
+
+In standard Python, we have to call many functions to work with dates.  Instead of repeatedly calling Python functions to work with dates, why not store everything one-time in the Redis Cache?  Then just use one-line Python functions to retrieve information as-needed.
+
 ### Installation
 Using Bench:
 ```
