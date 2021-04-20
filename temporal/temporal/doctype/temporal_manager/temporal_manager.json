@@ -1,0 +1,45 @@
+{
+ "creation": "2021-04-20 11:55:54.814929",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "about",
+  "btn_show_weeks"
+ ],
+ "fields": [
+  {
+   "default": "This panel is for working with the Temporal App.",
+   "fieldname": "about",
+   "fieldtype": "Read Only",
+   "label": "About"
+  },
+  {
+   "fieldname": "btn_show_weeks",
+   "fieldtype": "Button",
+   "label": "Show Weeks",
+   "options": "btn_show_weeks"
+  }
+ ],
+ "in_create": 1,
+ "issingle": 1,
+ "modified": "2021-04-20 11:57:09.849555",
+ "modified_by": "Administrator",
+ "module": "Temporal",
+ "name": "Temporal Manager",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}

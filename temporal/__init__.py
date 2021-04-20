@@ -33,8 +33,10 @@ WEEKDAYS_MON = ( 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN')
 
 class Week():
 	""" A calendar week, starting on Sunday, where the week containing January 1st is always week #1 """
-	def __init__(self, week_number, set_of_days, date_start, date_end):
+	def __init__(self, week_year, week_number, set_of_days, date_start, date_end):
+		self.week_year = week_year
 		self.week_number = week_number
+		self.week_number_str = str(self.week_number).zfill(2)
 		self.days = set_of_days
 		self.date_start = date_start
 		self.date_end = date_end
@@ -213,16 +215,40 @@ def get_date(any_date):
 	return temporal_redis.read_single_day(date_to_datekey(any_date))
 
 def get_week_by_weeknum(year, week_number):
-	""" Fetch a Week dictionary from Redis. """
+	"""  Returns a class Week. """
 	if not isinstance(week_number, int):
 		raise TypeError("Argument 'week_number' must be an integer.")
 	week_number_str = str(week_number).zfill(2)
 	week_key = f"{year}-{week_number_str}"
-	return temporal_redis.read_single_week(week_key)
+	week_dict = temporal_redis.read_single_week(week_key)
+	if not week_dict:
+		return None
+	return Week(week_dict['year'],
+	            week_dict['week_number'],
+				week_dict['week_dates'],
+				week_dict['week_start'],
+				week_dict['week_end'])
 
 def get_week_by_anydate(any_date):
 	""" Returns a class Week """
 	if not isinstance(any_date, dtdate):
 		raise TypeError("Expected argument 'any_date' to be of type 'datetime.date'")
 	date_dict = get_date(any_date)  # fetch from Redis
+	if not date_dict:
+		print(f"WARNING: Unable to find Week in Redis for calendar date {any_date}.")
+		return None
 	return get_week_by_weeknum(date_dict['week_year'], date_dict['week_number'])
+
+def get_weeks_as_dict(year, from_week_num, to_week_num):
+	""" Given a range of Week numbers, return a List of dictionaries. """
+	from_week_num = int(from_week_num)
+	to_week_num = int(to_week_num)
+
+	weeks_list = []
+	for week_num in range(from_week_num, to_week_num + 1):
+		week_number_str = str(week_num).zfill(2)
+		week_key = f"{year}-{week_number_str}"
+		week_dict = temporal_redis.read_single_week(week_key)
+		if week_dict:
+			weeks_list.append(week_dict)
+	return weeks_list

@@ -7,7 +7,7 @@ def get_data():
 		{
 			"module_name": "Temporal",
 			"color": "grey",
-			"icon": "octicon octicon-file-directory",
+			"icon": "octicon octicon-pencil",
 			"type": "module",
 			"label": _("Temporal")
 		}
