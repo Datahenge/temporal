@@ -12,6 +12,7 @@ from typing import Dict, Tuple, Sequence
 
 # Third Party
 import dateutil
+from dateutil.relativedelta import *
 from dateutil.rrule import rrule, WEEKLY
 from dateutil.rrule import SU, MO, TU, WE, TH, FR, SA
 from temporal import redis as temporal_redis  # alias to distinguish from Third Party module
@@ -30,6 +31,46 @@ END_YEAR = 2050
 
 WEEKDAYS_SUN = ( 'SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT')
 WEEKDAYS_MON = ( 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN')
+
+
+class TDate():
+	""" A better datetime.date """
+	def __init__(self, any_date):
+		if not isinstance(any_date, datetime.date):
+			raise TypeError("Class argument 'any_date' must be a Python date")
+		self.date = any_date
+
+	def __add__(self, other):
+		# operator overload:  adding two TDates
+		return self.date + other.date
+
+	def __sub__(self, other):
+		# operator overload: subtracting two TDates
+		return self.date - other.date
+
+	def day_of_week(self):
+		return (self.date.toordinal() % 7) + 1  # Sunday is 1st day of week
+
+	def day_of_month(self):
+		return self.date.day
+
+	def day_of_year(self):
+		return int(self.date.strftime("%j"))  # e.g. April 1st is the 109th day in year 2020.
+
+	def month_of_year(self):
+		return self.date.month
+
+	def year(self):
+		return self.date.year
+
+	def as_date(self):
+		return self.date
+
+	def jan1(self):
+		return TDate(dtdate(year=self.date.year, month=1, day=1))
+
+	def jan1_next_year(self):
+		return TDate(dtdate(year=self.date.year + 1, month=1, day=1))
 
 class Week():
 	""" A calendar week, starting on Sunday, where the week containing January 1st is always week #1 """
@@ -92,7 +133,7 @@ class Builder():
 		end_date = dtdate(self.end_year, 12, 31)  # could also do self.years[-1]
 
 		count = 0
-		for date_foo in Internals.date_range(start_date, end_date):
+		for date_foo in date_range(start_date, end_date):
 			day_dict = {}
 			day_dict['date'] = date_foo
 			day_dict['date_as_string'] = day_dict['date'].strftime("%Y-%m-%d")
@@ -103,11 +144,10 @@ class Builder():
 			day_dict['month_in_year_str'] = date_foo.strftime("%B")
 			day_dict['year'] = date_foo.year
 			day_dict['day_of_year'] = date_foo.strftime("%j")
-			if date_foo >= dtdate(year=date_foo.year, month=12, day=26):  # December 26th or later?
-				day_dict['week_year'] = date_foo.year + 1
-			else:
-				day_dict['week_year'] = date_foo.year
-			day_dict['week_number'] = Internals.date_to_week_number(date_foo)
+			# Calculate the week number:
+			week_tuple = Internals.date_to_week_tuple(date_foo)
+			day_dict['week_year'] = week_tuple[0]
+			day_dict['week_number'] = week_tuple[1]
 			day_dict['index_in_week'] = int(date_foo.strftime("%w")) + 1  # 1-based indexing
 			# Write this dictionary in the Redis cache:
 			temporal_redis.write_single_day(day_dict)
@@ -141,7 +181,7 @@ class Builder():
 				week_number = 1
 			else:
 				week_number += 1
-			tuple_of_dates = tuple(list(Internals.date_range(week_start_date, week_end_date)))
+			tuple_of_dates = tuple(list(date_range(week_start_date, week_end_date)))
 			week_dict = {}
 			week_dict['year'] = week_end_date.year
 			week_dict['week_number'] = week_number
@@ -160,37 +200,79 @@ class Builder():
 class Internals():
 	""" Internal functions that should not be called outside of Temporal. """
 	@staticmethod
-	def date_to_week_number(any_date):
+	def date_to_week_tuple(any_date, verbose=False):
 		""" Given a date, return the corresponding week number.
 			This uses a special calculation, that prevents "partial weeks"
 		"""
 		if not isinstance(any_date, datetime.date):
 			raise TypeError("Argument must be of type 'datetime.date'")
-		year_start_date = dtdate(any_date.year, 1, 1)
 
-		year_start_pos_in_week = int(year_start_date.strftime("%w")) + 1
-		date_pos_in_year = int(any_date.strftime("%j")) # e.g. April 1st is the 109th day in year 2020.
+		any_date = TDate(any_date)
+		jan1 = any_date.jan1()
+		jan1_next = any_date.jan1_next_year()
+
+		if verbose:
+			print("\n----Verbose Details----")
+			print(f"January 1st {jan1.as_date().year} is the {jan1.day_of_week()} day in the week.")
+			print(f"January 1st {jan1_next.as_date().year} is the {jan1_next.day_of_week()} day in the week.")
+			print(f"Day of Week: {any_date.day_of_week()}")
+			print(f"Distance from Jan 1st: {(any_date-jan1).days} days")
+			print(f"Distance from Future Jan 1st: {(jan1_next-any_date).days} days")
+		# SCENARIO 1: January 1st
+		if (any_date.day_of_month() == 1) and (any_date.month_of_year() == 1):
+			return (any_date.year(), 1)
+		# SCENARIO 2A: Week 1, after January 1st
+		if (any_date.day_of_week() > jan1.day_of_week()) and ((any_date-jan1).days in range(1,7)):
+			if verbose:
+				print("Scenario 2A; target date part of Week 1.")
+			return (any_date.year(), 1)
+		# SCENARIO 2B: Week 1, before NEXT January 1st
+		if (any_date.day_of_week() < jan1_next.day_of_week()) and ((jan1_next-any_date).days in range(1,7)):
+			if verbose:
+				print("Scenario 2B; target date near beginning of Future Week 1.")
+			return (any_date.year() + 1, 1)
+		# SCENARIO 3:  Find the first Sunday, then modulus 7.
+		if verbose:
+			print("Scenario 3: Target date is not nearby to January 1st.")
+		first_sunday = TDate(jan1.as_date() + relativedelta(weekday=SU))
+		first_sunday_pos = first_sunday.day_of_year()
 		# Formula
 		# (( day_in_year - pos_of_Jan_1st ) / 7 ) + 1
-		week_number = int((date_pos_in_year - year_start_pos_in_week) / 7 ) + 1
-		return week_number
+		# Why the +2 at the end?  1 for modulus, and another 1 because we're offset against Week 2.
+		week_number = int((any_date.day_of_year() - first_sunday_pos) / 7 ) + 2
+		return (jan1.year(), week_number)
 
 	@staticmethod
 	def get_year_from_frappedate(frappe_date):
 		return int(frappe_date[:4])
 
-	@staticmethod
-	def date_range(start_date, end_date):
-		""" Generator for an inclusive range of dates.
-		    It's pretty silly this isn't part of Python Standard Library or datetime
-		"""
-		# Important to add +1, otherwise the range is -not- inclusive.
-		for number_of_days in range(int((end_date - start_date).days) + 1):
-			yield start_date + timedelta(number_of_days)
-
 # ----------------
 # Public Functions
 # ----------------
+
+def date_range(start_date, end_date):
+	""" Generator for an inclusive range of dates.
+		It's pretty silly this isn't part of Python Standard Library or datetime
+	"""
+	# Important to add +1, otherwise the range is -not- inclusive.
+	for number_of_days in range(int((end_date - start_date).days) + 1):
+		yield start_date + timedelta(number_of_days)
+
+def date_range_from_strdates(start_date_str, end_date_str):
+	""" Generator for an inclusive range of date-strings. """
+	if not isinstance(start_date_str, str):
+		raise TypeError("Argument 'start_date_str' must be a Python string.")
+	if not isinstance(end_date_str, str):
+		raise TypeError("Argument 'end_date_str' must be a Python string.")
+	start_date = datestr_to_date(start_date_str)
+	end_date = datestr_to_date(end_date_str)
+	return date_range(start_date, end_date)
+
+def date_to_datekey(any_date):
+	if not isinstance(any_date, datetime.date):
+		raise Exception(f"Argument 'any_date' should have type 'datetime.date', not '{type(any_date)}'")
+	date_as_string = any_date.strftime("%Y-%m-%d")
+	return f"temporal/day/{date_as_string}"
 
 def get_calendar_years():
 	""" Fetch calendar years from Redis. """
@@ -200,18 +282,23 @@ def get_calendar_year(year):
 	""" Fetch a Year dictionary from Redis. """
 	return temporal_redis.read_single_year(year)
 
-def date_to_datekey(any_date):
-	date_as_string = any_date.strftime("%Y-%m-%d")
-	return f"temporal/day/{date_as_string}"
-
 def week_to_weekkey(year, week_number):
 	if not isinstance(week_number, int):
 		raise TypeError("Argument 'week_number' should be a Python integer.")
 	week_as_string = str(week_number).zfill(2)
 	return f"temporal/week/{year}-{week_as_string}"
 
-def get_date(any_date):
-	""" Fetch a Day dictionary from Redis """
+def get_date_metadata(any_date):
+	""" This function returns a date dictionary from Redis.
+
+		bench execute --args "{'2021-04-18'}" temporal.get_date_metadata
+
+	 """
+	if isinstance(any_date, str):
+		any_date = datetime.datetime.strptime(any_date, '%Y-%m-%d').date()
+	if not isinstance(any_date, datetime.date):
+		raise Exception(f"Argument 'any_date' should have type 'datetime.date', not '{type(any_date)}'")
+
 	return temporal_redis.read_single_day(date_to_datekey(any_date))
 
 def get_week_by_weeknum(year, week_number):
@@ -233,16 +320,31 @@ def get_week_by_anydate(any_date):
 	""" Returns a class Week """
 	if not isinstance(any_date, dtdate):
 		raise TypeError("Expected argument 'any_date' to be of type 'datetime.date'")
-	date_dict = get_date(any_date)  # fetch from Redis
+
+	date_dict = get_date_metadata(any_date)  # fetch from Redis
+	print(f"DEBUG: This is what Redis says about Date = {any_date}\n{date_dict}")
 	if not date_dict:
 		print(f"WARNING: Unable to find Week in Redis for calendar date {any_date}.")
 		return None
 	return get_week_by_weeknum(date_dict['week_year'], date_dict['week_number'])
 
 def get_weeks_as_dict(year, from_week_num, to_week_num):
-	""" Given a range of Week numbers, return a List of dictionaries. """
+	""" Given a range of Week numbers, return a List of dictionaries.
+
+		From Shell: bench execute --args "2021,15,20" temporal.get_weeks_as_dict
+
+	"""
 	from_week_num = int(from_week_num)
 	to_week_num = int(to_week_num)
+
+	if year not in range(2000,2201):
+		raise Exception(f"Invalid value '{year}' for argument 'year'")
+	if from_week_num not in range(1,54):  # 53 possible week numbers.
+		raise Exception(f"Invalid value '{from_week_num}' for argument 'from_week_num'")
+	if to_week_num not in range(1,54):  # 53 possible week numbers.
+		raise Exception(f"Invalid value '{to_week_num}' for argument 'to_week_num'")
+
+	print(f"DEBUG: Arguments passed to function are {year}, {from_week_num}, {to_week_num}")
 
 	weeks_list = []
 	for week_num in range(from_week_num, to_week_num + 1):
@@ -252,3 +354,13 @@ def get_weeks_as_dict(year, from_week_num, to_week_num):
 		if week_dict:
 			weeks_list.append(week_dict)
 	return weeks_list
+
+def datestr_to_week_number(date_as_string):
+	""" Given a string date, return the Week Number. """
+	return Internals.date_to_week_tuple(datestr_to_date(date_as_string))
+
+def datestr_to_date(date_as_string):
+	""" Given date format YYYY-MM-DD, return a Python date. """
+	if not isinstance(date_as_string, str):
+		raise TypeError("Argument 'date_as_string' must be of type String.")
+	return datetime.datetime.strptime(date_as_string,"%Y-%m-%d").date()
