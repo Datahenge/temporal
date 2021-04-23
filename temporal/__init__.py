@@ -86,25 +86,40 @@ class Week():
 class Builder():
 	""" This class is used to build the temporal data (which we're storing in Redis) """
 
-	def __init__(self, epoch_year=EPOCH_YEAR, end_year=END_YEAR, start_of_week='SUN', verbose=False):
+	def __init__(self, epoch_year, end_year, start_of_week='SUN', verbose=False):
 		""" Initialize the Builder """
 		if not isinstance(start_of_week, str):
 			raise TypeError("Argument 'start_of_week' should be a Python String.")
 		if start_of_week not in ('SUN', 'MON'):
 			raise ValueError(f"Argument 'start of week' must be either 'SUN' or 'MON' (value passed was '{start_of_week}'")
+		if start_of_week != 'SUN':
+			raise Exception("Temporal is not-yet coded to handle weeks that begin with Monday.")
+
+		# Starting and Ending Year
+		if not epoch_year:
+			gui_start_year = int(frappe.db.get_single_value('Temporal Manager', 'start_year'))
+			epoch_year = gui_start_year or EPOCH_YEAR
+		if not end_year:
+			gui_end_year = int(frappe.db.get_single_value('Temporal Manager', 'end_year'))
+			end_year = gui_end_year or END_YEAR
+		if end_year < epoch_year:
+			raise ValueError(f"Ending year {end_year} cannot be smaller than Starting year {epoch_year}")
 		self.epoch_year = epoch_year
 		self.end_year = end_year
+
 		year_range = range(self.epoch_year, self.end_year + 1)  # because Python ranges are not inclusive
 		self.years = tuple(year_range)
 		self.weekdays = WEEKDAYS_SUN if start_of_week == 'SUN' else WEEKDAYS_MON
+		self.week_dicts = []  # this will get populated as we build.
 		self.verbose = verbose
 
 	@staticmethod
-	def build_all(epoch_year=EPOCH_YEAR, end_year=END_YEAR, start_of_week='SUN', verbose=False):
+	def build_all(epoch_year=None, end_year=None, start_of_week='SUN', verbose=False):
 		instance = Builder(epoch_year=epoch_year, end_year=end_year,
 		                   start_of_week=start_of_week, verbose=verbose)
+
+		instance.build_weeks()  # must happen first, so we can build years more-easily.
 		instance.build_years()
-		instance.build_weeks()
 		instance.build_days()
 
 	def build_years(self):
@@ -114,6 +129,7 @@ class Builder():
 			self.build_year(year)
 
 	def build_year(self, year):
+		""" Create a dictionary of Year metadata and write to Redis. """
 		date_start = dtdate(year, 1, 1)
 		date_end = dtdate(year,12,31)
 		days_in_year = (date_end - date_start).days + 1
@@ -126,6 +142,10 @@ class Builder():
 		# What day of the week is January 1st?
 		year_dict['jan_one_dayname'] = jan_one_dayname
 		year_dict['jan_one_weekpos'] = self.weekdays.index(jan_one_dayname) + 1  # because zero-based indexing
+		# Get the maximum week number (52 or 53)
+		max_week_number = max(foo['week_number'] for foo in self.week_dicts if foo['year'] == year)
+		year_dict['max_week_number'] = max_week_number
+
 		temporal_redis.write_single_year(year_dict, self.verbose)
 
 	def build_days(self):
@@ -158,20 +178,21 @@ class Builder():
 	def build_weeks(self):
 		""" Build all the weeks between Epoch Date and End Date """
 		# Begin on January 1st
-		january_first = dtdate(self.epoch_year,1,1)
-		january_index = int(january_first.strftime("%w"))
+		jan1_date = dtdate(self.epoch_year,1,1)
+		jan1_day_of_week = int(jan1_date.strftime("%w"))  # day of week for January 1st
 
-		week_start_date = january_first - timedelta(days=january_index)  # if January 1st is not Sunday, back up.
+		week_start_date = jan1_date - timedelta(days=jan1_day_of_week)  # if January 1st is not Sunday, back up.
 		week_end_date = None
 		week_number = None
 
-		print(f"Processing weeks starting with date: {week_start_date}")
+		print(f"Processing weeks begining with calendar date: {week_start_date}")
 		count = 0
 
 		while True:
 			# Stop once week_start_date's year exceeds the Maximum Year.
 			if week_start_date.year > self.end_year:
 				break
+
 			week_end_date = week_start_date + timedelta(days=6)
 			if (week_start_date.day == 1) and (week_start_date.month == 1):
 				# Sunday is January 1st, it's a new year.
@@ -189,6 +210,7 @@ class Builder():
 			week_dict['week_end'] = week_end_date
 			week_dict['week_dates'] = tuple_of_dates
 			temporal_redis.write_single_week(week_dict)
+			self.week_dicts.append(week_dict)  # internal object in Builder, for use later in build_years
 			# Increment to the Next Week
 			week_start_date = week_start_date + timedelta(days=7)
 			count += 1
@@ -303,11 +325,7 @@ def get_date_metadata(any_date):
 
 def get_week_by_weeknum(year, week_number):
 	"""  Returns a class Week. """
-	if not isinstance(week_number, int):
-		raise TypeError("Argument 'week_number' must be an integer.")
-	week_number_str = str(week_number).zfill(2)
-	week_key = f"{year}-{week_number_str}"
-	week_dict = temporal_redis.read_single_week(week_key)
+	week_dict = temporal_redis.read_single_week(year, week_number)
 	if not week_dict:
 		return None
 	return Week(week_dict['year'],
@@ -322,7 +340,6 @@ def get_week_by_anydate(any_date):
 		raise TypeError("Expected argument 'any_date' to be of type 'datetime.date'")
 
 	date_dict = get_date_metadata(any_date)  # fetch from Redis
-	print(f"DEBUG: This is what Redis says about Date = {any_date}\n{date_dict}")
 	if not date_dict:
 		print(f"WARNING: Unable to find Week in Redis for calendar date {any_date}.")
 		return None
@@ -344,13 +361,9 @@ def get_weeks_as_dict(year, from_week_num, to_week_num):
 	if to_week_num not in range(1,54):  # 53 possible week numbers.
 		raise Exception(f"Invalid value '{to_week_num}' for argument 'to_week_num'")
 
-	print(f"DEBUG: Arguments passed to function are {year}, {from_week_num}, {to_week_num}")
-
 	weeks_list = []
 	for week_num in range(from_week_num, to_week_num + 1):
-		week_number_str = str(week_num).zfill(2)
-		week_key = f"{year}-{week_number_str}"
-		week_dict = temporal_redis.read_single_week(week_key)
+		week_dict = temporal_redis.read_single_week(year, week_num)
 		if week_dict:
 			weeks_list.append(week_dict)
 	return weeks_list
@@ -364,3 +377,33 @@ def datestr_to_date(date_as_string):
 	if not isinstance(date_as_string, str):
 		raise TypeError("Argument 'date_as_string' must be of type String.")
 	return datetime.datetime.strptime(date_as_string,"%Y-%m-%d").date()
+
+def week_generator(from_date, to_date):
+	""" Return a Python Generator for all the weeks in a date range. """
+
+	if from_date > to_date:
+		raise ValueError("Argument 'from_date' cannot be greater than argument 'to_date'")
+	# If dates are the same, simply return the 1 week.
+	if from_date == to_date:
+		yield get_week_by_anydate(from_date)
+
+	from_week = get_week_by_anydate(from_date)
+	if not from_week:
+		raise Exception("The Temporal App was unable to find a Week for date {from_date}")
+	to_week = get_week_by_anydate(to_date)
+	if not to_week:
+		raise Exception("The Temporal App was unable to find a Week for date {to_date}")
+
+	results = []
+
+	# Determine which Week Numbers are missing.
+	for year in range(from_week.week_year, to_week.week_year + 1):
+		print(f"Processing week in year {year}")
+		# get_week_by_weeknum
+
+	"""
+	period_numbers_needed = set(range(from_week_number, to_week_number + 1))  # Burned so many times by non-inclusive 'range' function.
+	existing_period_numbers = get_dlvperiod_numbers(fiscal_year=from_date.year)
+	if existing_period_numbers:
+		period_numbers_needed -= set(existing_period_numbers)
+	"""

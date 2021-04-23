@@ -5,7 +5,6 @@
 # For license information, please see license.txt
 
 from __future__ import unicode_literals
-from datetime import date
 
 import frappe
 from frappe import _
@@ -20,6 +19,9 @@ class TemporalManager(Document):
 		frappe.publish_realtime("Dialog Show Redis Weeks", user=frappe.session.user)
 
 	def btn_rebuild_calendar_cache(self):
-		# Create a calendar thru current year, instead of Temporal's end date.
-		temporal.Builder.build_all(end_year=date.today().year, verbose=True)
+		""" Create a calendar records in Redis.
+		    * Start and End Years will default from the DocType 'Temporal Manager'
+			* If no values exist in 'Temporal Manager', there are hard-coded values in temporal.Builder()
+		"""
+		temporal.Builder.build_all(verbose=True)
 		frappe.msgprint(_("Finished rebuilding Redis Calendar."))

@@ -47,7 +47,6 @@ class TestTemporal(unittest.TestCase):
 			print(f"Expected week number 18; found week number {retval} instead.")
 			raise ex
 
-
 		# Test what Redis has stored in its database.
 		retval = temporal.get_date_metadata(this_date)['week_number']
 		self.assertTrue(retval == 18)

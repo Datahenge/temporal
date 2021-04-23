@@ -6,6 +6,8 @@
  "engine": "InnoDB",
  "field_order": [
   "section_break_1",
+  "start_year",
+  "end_year",
   "btn_show_weeks",
   "btn_rebuild_calendar_cache"
  ],
@@ -27,12 +29,23 @@
    "fieldtype": "Button",
    "label": "Rebuild Calendar Cache",
    "options": "btn_rebuild_calendar_cache"
+  },
+  {
+   "fieldname": "end_year",
+   "fieldtype": "Data",
+   "label": "End Year"
+  },
+  {
+   "default": "2020",
+   "fieldname": "start_year",
+   "fieldtype": "Int",
+   "label": "Start Year"
   }
  ],
  "hide_toolbar": 1,
  "in_create": 1,
  "issingle": 1,
- "modified": "2021-04-21 01:53:36.478529",
+ "modified": "2021-04-21 15:22:02.004976",
  "modified_by": "Administrator",
  "module": "Temporal",
  "name": "Temporal Manager",

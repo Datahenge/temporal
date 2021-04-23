@@ -3,6 +3,7 @@
 An ERPNext [App](https://frappeframework.com/docs/user/en/basics/apps) that integrates with Redis to rapidly provide calendar information.
 
 ### Concept
+
 The Earth's temporal calendar (years, months, weeks, days) is static information.  We know that May 4th in year 2542 will be a Friday, and will be the 124th day of that year.
 
 ERP systems frequently need date-based information.  How do they do this?
@@ -13,6 +14,14 @@ The purpose of Temporal is to provide another option:
 * Option 3: Load all calendar data into the *Redis Cache* at startup.  Included complex calculations for `Week Number of Year`, `Week Dates`, and more.
 
 By leveraging the power of Redis, ERPNext can rapidly fetch date-based information with minimal CPU and Disk activity.
+
+### Temporal's Concept of Weeks
+
+* Weeks are numbered YYYY-WW  (e.g. 2021-14, 2022-51)
+* Weeks contain 7 complete days, starting with Sunday.
+* Weeks can -never- have fewer than 7 days.
+* Weeks "may" contain calendar days that have different calendar years.
+* However, each Week is "assigned" to 1 Year exclusively.
 
 ### Installation
 Using Bench:
