@@ -11,6 +11,7 @@ from pprint import pprint
 from six import iteritems
 
 # Frappe
+import frappe
 from frappe import cache, msgprint, safe_decode
 
 #  Redis Data Model:
@@ -113,7 +114,6 @@ def write_single_week(week_dict, verbose=False):
 		print("Created a Temporal Week '{week_key}' in Redis:\n")
 		pprint(read_single_week(week_dict['year'], week_dict['week_number']), depth=6)
 
-
 def write_single_day(day_dict):
 	""" Store a Day in Redis as a hash. """
 	if not isinstance(day_dict, dict):
@@ -142,8 +142,11 @@ def read_years():
 
 def read_single_year(year):
 	""" Returns a Python Dictionary containing year-by-year data. """
-	redis_hash =  cache().hgetall(f"temporal/year/{year}")
+	year_key = f"temporal/year/{year}"
+	redis_hash =  cache().hgetall(year_key)
 	if not redis_hash:
+		if frappe.db.get_single_value('Temporal Manager', 'debug_mode'):
+			raise KeyError(f"Temporal was unable to find Redis key with name = {year_key}")
 		return None
 	return redis_hash_to_dict(redis_hash)
 
@@ -158,6 +161,8 @@ def read_single_day(day_key):
 		raise ValueError("All Redis key arguments should begin with 'temporal'")
 	redis_hash =  cache().hgetall(day_key)
 	if not redis_hash:
+		if frappe.db.get_single_value('Temporal Manager', 'debug_mode'):
+			raise KeyError(f"Temporal was unable to find Redis key with name = {day_key}")
 		return None
 	return redis_hash_to_dict(redis_hash)
 
@@ -171,5 +176,7 @@ def read_single_week(year, week_number):
 	week_key = _get_weekkey(year, week_number)
 	redis_hash =  cache().hgetall(f"temporal/week/{week_key}")
 	if not redis_hash:
+		if frappe.db.get_single_value('Temporal Manager', 'debug_mode'):
+			raise KeyError(f"Temporal was unable to find Redis key with name = {week_key}")
 		return None
 	return redis_hash_to_dict(redis_hash)

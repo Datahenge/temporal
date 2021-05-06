@@ -85,8 +85,12 @@ class Week():
 class Builder():
 	""" This class is used to build the temporal data (which we're storing in Redis) """
 
-	def __init__(self, epoch_year, end_year, start_of_week='SUN', verbose=False):
+	def __init__(self, epoch_year, end_year, start_of_week='SUN'):
 		""" Initialize the Builder """
+
+		# This determines if we output additional Error Messages.
+		self.debug_mode = frappe.db.get_single_value('Temporal Manager', 'debug_mode')
+
 		if not isinstance(start_of_week, str):
 			raise TypeError("Argument 'start_of_week' should be a Python String.")
 		if start_of_week not in ('SUN', 'MON'):
@@ -96,10 +100,10 @@ class Builder():
 
 		# Starting and Ending Year
 		if not epoch_year:
-			gui_start_year = int(frappe.db.get_single_value('Temporal Manager', 'start_year'))
+			gui_start_year = int(frappe.db.get_single_value('Temporal Manager', 'start_year') or 0)
 			epoch_year = gui_start_year or EPOCH_YEAR
 		if not end_year:
-			gui_end_year = int(frappe.db.get_single_value('Temporal Manager', 'end_year'))
+			gui_end_year = int(frappe.db.get_single_value('Temporal Manager', 'end_year') or 0)
 			end_year = gui_end_year or END_YEAR
 		if end_year < epoch_year:
 			raise ValueError(f"Ending year {end_year} cannot be smaller than Starting year {epoch_year}")
@@ -110,12 +114,13 @@ class Builder():
 		self.years = tuple(year_range)
 		self.weekdays = WEEKDAYS_SUN if start_of_week == 'SUN' else WEEKDAYS_MON
 		self.week_dicts = []  # this will get populated as we build.
-		self.verbose = verbose
 
 	@staticmethod
-	def build_all(epoch_year=None, end_year=None, start_of_week='SUN', verbose=False):
-		instance = Builder(epoch_year=epoch_year, end_year=end_year,
-		                   start_of_week=start_of_week, verbose=verbose)
+	def build_all(epoch_year=None, end_year=None, start_of_week='SUN'):
+		""" Rebuild all Temporal cache key-values. """
+		instance = Builder(epoch_year=epoch_year,
+		                   end_year=end_year,
+		                   start_of_week=start_of_week)
 
 		instance.build_weeks()  # must happen first, so we can build years more-easily.
 		instance.build_years()
@@ -323,8 +328,10 @@ def get_date_metadata(any_date):
 
 def get_week_by_weeknum(year, week_number):
 	"""  Returns a class Week. """
-	week_dict = temporal_redis.read_single_week(year, week_number)
+	week_dict = temporal_redis.read_single_week(year, week_number, )
 	if not week_dict:
+		if frappe.db.get_single_value('Temporal Manager', 'debug_mode'):
+			raise KeyError(f"WARNING: Unable to find Week in Redis for year {year}, week {week_number}.")
 		return None
 	return Week(week_dict['year'],
 	            week_dict['week_number'],
@@ -339,7 +346,8 @@ def get_week_by_anydate(any_date):
 
 	date_dict = get_date_metadata(any_date)  # fetch from Redis
 	if not date_dict:
-		print(f"WARNING: Unable to find Week in Redis for calendar date {any_date}.")
+		if frappe.db.get_single_value('Temporal Manager', 'debug_mode'):
+			raise KeyError(f"WARNING: Unable to find Week in Redis for calendar date {any_date}.")
 		return None
 	return get_week_by_weeknum(date_dict['week_year'], date_dict['week_number'])
 
@@ -387,10 +395,10 @@ def week_generator(from_date, to_date):
 
 	from_week = get_week_by_anydate(from_date)  # Class of type 'Week'
 	if not from_week:
-		raise Exception("The Temporal App was unable to find a Week for date {from_date}")
+		raise Exception(f"Unable to find a Week for date {from_date} (Temporal week_generator())")
 	to_week = get_week_by_anydate(to_date)  # Class of type 'Week'
 	if not to_week:
-		raise Exception("The Temporal App was unable to find a Week for date {to_date}")
+		raise Exception(f"Unable to find a Week for date {to_date} (Temporal week_generator())")
 
 	# results = []
 
@@ -405,7 +413,7 @@ def week_generator(from_date, to_date):
 		else:
 			start_index = 1
 		# End Index
-		end_index = 0			
+		end_index = 0
 		if year == to_week.week_year:
 			end_index = to_week.week_number
 		else:
@@ -413,4 +421,3 @@ def week_generator(from_date, to_date):
 
 		for week_num in range(start_index, end_index+1):
 			yield get_week_by_weeknum(year, week_num)  # A class of type 'Week'
-

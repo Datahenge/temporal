@@ -6,6 +6,7 @@
  "engine": "InnoDB",
  "field_order": [
   "section_break_1",
+  "debug_mode",
   "start_year",
   "end_year",
   "btn_show_weeks",
@@ -40,12 +41,19 @@
    "fieldname": "start_year",
    "fieldtype": "Int",
    "label": "Start Year"
+  },
+  {
+   "default": "0",
+   "description": "When enabled, additional error messages are displayed.",
+   "fieldname": "debug_mode",
+   "fieldtype": "Check",
+   "label": "Debug Mode"
   }
  ],
  "hide_toolbar": 1,
  "in_create": 1,
  "issingle": 1,
- "modified": "2021-04-21 15:22:02.004976",
+ "modified": "2021-05-06 12:25:25.088553",
  "modified_by": "Administrator",
  "module": "Temporal",
  "name": "Temporal Manager",

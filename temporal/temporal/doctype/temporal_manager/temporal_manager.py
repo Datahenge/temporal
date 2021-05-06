@@ -23,5 +23,5 @@ class TemporalManager(Document):
 		    * Start and End Years will default from the DocType 'Temporal Manager'
 			* If no values exist in 'Temporal Manager', there are hard-coded values in temporal.Builder()
 		"""
-		temporal.Builder.build_all(verbose=True)
+		temporal.Builder.build_all()
 		frappe.msgprint(_("Finished rebuilding Redis Calendar."))
