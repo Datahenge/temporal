@@ -128,7 +128,7 @@ class Builder():
 
 	def build_years(self):
 		""" Calculate years and write to Redis. """
-		temporal_redis.write_years(self.years, verbose=self.verbose)
+		temporal_redis.write_years(self.years, self.debug_mode)
 		for year in self.years:
 			self.build_year(year)
 
@@ -150,7 +150,7 @@ class Builder():
 		max_week_number = max(foo['week_number'] for foo in self.week_dicts if foo['year'] == year)
 		year_dict['max_week_number'] = max_week_number
 
-		temporal_redis.write_single_year(year_dict, self.verbose)
+		temporal_redis.write_single_year(year_dict, self.debug_mode)
 
 	def build_days(self):
 		start_date = dtdate(self.epoch_year,1,1)  # could also do self.years[0]
@@ -169,14 +169,14 @@ class Builder():
 			day_dict['year'] = date_foo.year
 			day_dict['day_of_year'] = date_foo.strftime("%j")
 			# Calculate the week number:
-			week_tuple = Internals.date_to_week_tuple(date_foo)
+			week_tuple = Internals.date_to_week_tuple(date_foo, verbose=self.debug_mode)
 			day_dict['week_year'] = week_tuple[0]
 			day_dict['week_number'] = week_tuple[1]
 			day_dict['index_in_week'] = int(date_foo.strftime("%w")) + 1  # 1-based indexing
 			# Write this dictionary in the Redis cache:
 			temporal_redis.write_single_day(day_dict)
 			count += 1
-		if self.verbose:
+		if self.debug_mode:
 			print(f"\u2713 Created {count} Temporal Day keys in Redis.")
 
 	def build_weeks(self):
@@ -220,7 +220,7 @@ class Builder():
 			count += 1
 
 		# Loop complete.
-		if self.verbose:
+		if self.debug_mode:
 			print(f"\u2713 Created {count} Temporal Week keys in Redis.")
 
 class Internals():
@@ -376,7 +376,7 @@ def get_weeks_as_dict(year, from_week_num, to_week_num):
 
 def datestr_to_week_number(date_as_string):
 	""" Given a string date, return the Week Number. """
-	return Internals.date_to_week_tuple(datestr_to_date(date_as_string))
+	return Internals.date_to_week_tuple(datestr_to_date(date_as_string), verbose=False)
 
 def datestr_to_date(date_as_string):
 	""" Given date format YYYY-MM-DD, return a Python date. """
