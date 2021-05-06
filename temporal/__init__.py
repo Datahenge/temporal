@@ -82,7 +82,6 @@ class Week():
 		self.date_start = date_start
 		self.date_end = date_end
 
-
 class Builder():
 	""" This class is used to build the temporal data (which we're storing in Redis) """
 
@@ -258,9 +257,8 @@ class Internals():
 			print("Scenario 3: Target date is not nearby to January 1st.")
 		first_sunday = TDate(jan1.as_date() + relativedelta(weekday=SU))
 		first_sunday_pos = first_sunday.day_of_year()
-		# Formula
-		# (( day_in_year - pos_of_Jan_1st ) / 7 ) + 1
-		# Why the +2 at the end?  1 for modulus, and another 1 because we're offset against Week 2.
+		# Formula: (( Date's Position in Year - Position of First Sunday) / 7 ) + 2
+		# Why the +2 at the end?  Because +1 for modulus, and +1 because we're offset against Week #2
 		week_number = int((any_date.day_of_year() - first_sunday_pos) / 7 ) + 2
 		return (jan1.year(), week_number)
 
@@ -387,23 +385,32 @@ def week_generator(from_date, to_date):
 	if from_date == to_date:
 		yield get_week_by_anydate(from_date)
 
-	from_week = get_week_by_anydate(from_date)
+	from_week = get_week_by_anydate(from_date)  # Class of type 'Week'
 	if not from_week:
 		raise Exception("The Temporal App was unable to find a Week for date {from_date}")
-	to_week = get_week_by_anydate(to_date)
+	to_week = get_week_by_anydate(to_date)  # Class of type 'Week'
 	if not to_week:
 		raise Exception("The Temporal App was unable to find a Week for date {to_date}")
 
-	results = []
+	# results = []
 
 	# Determine which Week Numbers are missing.
 	for year in range(from_week.week_year, to_week.week_year + 1):
 		print(f"Processing week in year {year}")
-		# get_week_by_weeknum
+		year_dict = temporal_redis.read_single_year(year)
+		# Start Index
+		start_index = 0
+		if year == from_week.week_year:
+			start_index = from_week.week_number
+		else:
+			start_index = 1
+		# End Index
+		end_index = 0			
+		if year == to_week.week_year:
+			end_index = to_week.week_number
+		else:
+			end_index = year_dict['max_week_number']
 
-	"""
-	period_numbers_needed = set(range(from_week_number, to_week_number + 1))  # Burned so many times by non-inclusive 'range' function.
-	existing_period_numbers = get_dlvperiod_numbers(fiscal_year=from_date.year)
-	if existing_period_numbers:
-		period_numbers_needed -= set(existing_period_numbers)
-	"""
+		for week_num in range(start_index, end_index+1):
+			yield get_week_by_weeknum(year, week_num)  # A class of type 'Week'
+
