@@ -6,6 +6,7 @@
 
 # Standard Library
 from pprint import pprint
+import datetime
 
 # Third Party
 from six import iteritems
@@ -45,6 +46,14 @@ def _year_to_yearkey(year):
 		raise TypeError("Argument 'year' should be a Python integer.")
 	return f"temporal/year/{year}"
 
+def _date_to_daykey(date):
+	# For rationality, key format will be YYYY-MM-DD
+	if not isinstance(date, datetime.date):
+		raise TypeError("Argument 'date' should be a Python datetime Date.")
+	date_as_string = date.strftime("%Y-%m-%d")
+	day_key = f"temporal/day/{date_as_string}"
+	return day_key
+
 def _get_weekkey(year, week_number):
 	""" Return a Redis weekkey """
 	if not isinstance(week_number, int):
@@ -54,7 +63,7 @@ def _get_weekkey(year, week_number):
 	if week_number < 1:
 		raise ValueError("Week number must be an integer between 1 and 53.")
 	week_number_str = str(week_number).zfill(2)
-	return f"{year}-{week_number_str}"
+	return f"temporal/week/{year}-{week_number_str}"
 
 # ------------
 # WRITING TO REDIS
@@ -119,17 +128,16 @@ def write_single_day(day_dict):
 	if not isinstance(day_dict, dict):
 		raise TypeError("Argument 'day_dict' should be a Python Dictionary.")
 
-	# For rationality, key format will be YYYY-MM-DD
-	date_as_string = day_dict['date'].strftime("%Y-%m-%d")
-	day_key = f"temporal/day/{date_as_string}"
-	cache().delete_key(day_key)
+	hash_key = _date_to_daykey(day_dict['date'])
+	cache().delete_key(hash_key)
 
+	date_as_string = day_dict['date'].strftime("%Y-%m-%d")
 	for key,value in day_dict.items():
 		if key == 'date':
 			# No point storing datetime.date; just store a sortable date string: YYYY-MM-DD
-			cache().hset(day_key, key, date_as_string)
+			cache().hset(hash_key, key, date_as_string)
 		else:
-			cache().hset(day_key, key, value)
+			cache().hset(hash_key, key, value)
 
 # ------------
 # READING FROM REDIS
@@ -142,7 +150,7 @@ def read_years():
 
 def read_single_year(year):
 	""" Returns a Python Dictionary containing year-by-year data. """
-	year_key = f"temporal/year/{year}"
+	year_key = _year_to_yearkey(year)
 	redis_hash =  cache().hgetall(year_key)
 	if not redis_hash:
 		if frappe.db.get_single_value('Temporal Manager', 'debug_mode'):
@@ -174,7 +182,7 @@ def read_weeks():
 def read_single_week(year, week_number):
 	""" Reads Redis, and returns a Python Dictionary containing a single Week. """
 	week_key = _get_weekkey(year, week_number)
-	redis_hash =  cache().hgetall(f"temporal/week/{week_key}")
+	redis_hash =  cache().hgetall(week_key)
 	if not redis_hash:
 		if frappe.db.get_single_value('Temporal Manager', 'debug_mode'):
 			raise KeyError(f"Temporal was unable to find Redis key with name = {week_key}")
