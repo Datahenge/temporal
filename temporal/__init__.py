@@ -30,6 +30,7 @@ END_YEAR = 2050
 # Module Typing: https://docs.python.org/3.8/library/typing.html#module-typing
 
 WEEKDAYS_SUN = ( 'SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT')
+WEEKDAYS_SUNDAY = ( 'Sunday', 'Monday', 'Tuedsay', 'Wednesday', 'Thursday', 'Friday', 'Saturday')
 WEEKDAYS_MON = ( 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN')
 
 
@@ -50,6 +51,9 @@ class TDate():
 
 	def day_of_week(self):
 		return (self.date.toordinal() % 7) + 1  # Sunday is 1st day of week
+
+	def day_of_week_name(self):
+		return WEEKDAYS_SUNDAY[self.day_of_week() - 1]
 
 	def day_of_month(self):
 		return self.date.day
