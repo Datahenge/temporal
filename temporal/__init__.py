@@ -76,6 +76,9 @@ class TDate():
 	def jan1_next_year(self):
 		return TDate(dtdate(year=self.date.year + 1, month=1, day=1))
 
+	def is_between(self, from_date, to_date):
+		return from_date <= self.date <= to_date
+
 class Week():
 	""" A calendar week, starting on Sunday, where the week containing January 1st is always week #1 """
 	def __init__(self, week_year, week_number, set_of_days, date_start, date_end):
