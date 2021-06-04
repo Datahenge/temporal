@@ -10,6 +10,10 @@ from datetime import timedelta
 from datetime import date as dtdate
 from typing import Dict, Tuple, Sequence
 
+# from dateutil import parser
+# from dateutil.parser._parser import ParserError
+
+
 # Third Party
 import dateutil
 from dateutil.relativedelta import *
@@ -23,7 +27,7 @@ import frappe
 from frappe import _, throw, msgprint
 
 # Constants
-__version__ = '0.0.1'
+__version__ = '13.0.0'
 EPOCH_YEAR = 2020
 END_YEAR = 2050
 
@@ -37,8 +41,10 @@ WEEKDAYS_MON = ( 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN')
 class TDate():
 	""" A better datetime.date """
 	def __init__(self, any_date):
+		if not any_date:
+			raise TypeError("Class argument 'any_date' cannot be None.")
 		if not isinstance(any_date, datetime.date):
-			raise TypeError("Class argument 'any_date' must be a Python date")
+			raise TypeError("Class argument 'any_date' must be a Python date.")
 		self.date = any_date
 
 	def __add__(self, other):
@@ -123,6 +129,7 @@ class Builder():
 		self.week_dicts = []  # this will get populated as we build.
 
 	@staticmethod
+	@frappe.whitelist()
 	def build_all(epoch_year=None, end_year=None, start_of_week='SUN'):
 		""" Rebuild all Temporal cache key-values. """
 		instance = Builder(epoch_year=epoch_year,
@@ -196,9 +203,10 @@ class Builder():
 		week_end_date = None
 		week_number = None
 
-		print(f"Processing weeks begining with calendar date: {week_start_date}")
-		count = 0
+		if self.debug_mode:
+			print(f"Processing weeks begining with calendar date: {week_start_date}")
 
+		count = 0
 		while True:
 			# Stop once week_start_date's year exceeds the Maximum Year.
 			if week_start_date.year > self.end_year:
@@ -314,11 +322,13 @@ def get_calendar_year(year):
 	""" Fetch a Year dictionary from Redis. """
 	return temporal_redis.read_single_year(year)
 
+
 def week_to_weekkey(year, week_number):
 	if not isinstance(week_number, int):
 		raise TypeError("Argument 'week_number' should be a Python integer.")
 	week_as_string = str(week_number).zfill(2)
 	return f"temporal/week/{year}-{week_as_string}"
+
 
 def get_date_metadata(any_date):
 	""" This function returns a date dictionary from Redis.
@@ -333,6 +343,7 @@ def get_date_metadata(any_date):
 
 	return temporal_redis.read_single_day(date_to_datekey(any_date))
 
+
 def get_week_by_weeknum(year, week_number):
 	"""  Returns a class Week. """
 	week_dict = temporal_redis.read_single_week(year, week_number, )
@@ -346,6 +357,7 @@ def get_week_by_weeknum(year, week_number):
 				week_dict['week_start'],
 				week_dict['week_end'])
 
+
 def get_week_by_anydate(any_date):
 	""" Returns a class Week """
 	if not isinstance(any_date, dtdate):
@@ -357,6 +369,7 @@ def get_week_by_anydate(any_date):
 			raise KeyError(f"WARNING: Unable to find Week in Redis for calendar date {any_date}.")
 		return None
 	return get_week_by_weeknum(date_dict['week_year'], date_dict['week_number'])
+
 
 def get_weeks_as_dict(year, from_week_num, to_week_num):
 	""" Given a range of Week numbers, return a List of dictionaries.
@@ -381,15 +394,36 @@ def get_weeks_as_dict(year, from_week_num, to_week_num):
 			weeks_list.append(week_dict)
 	return weeks_list
 
+
 def datestr_to_week_number(date_as_string):
 	""" Given a string date, return the Week Number. """
 	return Internals.date_to_week_tuple(datestr_to_date(date_as_string), verbose=False)
 
+
+def is_invalid_date_string(date_string):
+	# dateutil parser does not agree with dates like "0001-01-01" or "0000-00-00"
+	return (not date_string) or (date_string or "").startswith(("0001-01-01", "0000-00-00"))
+
+
 def datestr_to_date(date_as_string):
-	""" Given date format YYYY-MM-DD, return a Python date. """
+	"""
+	Converts string date (yyyy-mm-dd) to datetime.date object.
+	"""		
+	if not date_as_string:
+		return None
 	if not isinstance(date_as_string, str):
-		raise TypeError("Argument 'date_as_string' must be of type String.")
-	return datetime.datetime.strptime(date_as_string,"%Y-%m-%d").date()
+		raise TypeError(f"Argument 'date_as_string' should be of type String, not '{type(date_as_string)}'")
+	if is_invalid_date_string(date_as_string):
+		return None
+
+	try:
+		return dateutil.parser.parse(date_as_string).date()
+		# return datetime.datetime.strptime(date_as_string,"%Y-%m-%d").date()
+	except  dateutil.parser._parser.ParserError:
+		frappe.throw(frappe._('{} is not a valid date string.').format(
+			frappe.bold(date_as_string)
+		), title=frappe._('Invalid Date'))
+
 
 def week_generator(from_date, to_date):
 	""" Return a Python Generator for all the weeks in a date range. """
