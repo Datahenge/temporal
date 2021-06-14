@@ -46,4 +46,4 @@ bench --site <your_site_name> install-app temporal
 
 #### License
 
-MIT
+Lesser GNU Public License version 3.
