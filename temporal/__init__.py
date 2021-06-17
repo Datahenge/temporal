@@ -4,38 +4,67 @@
 from __future__ import unicode_literals
 
 # Standard Library
-import json
 import datetime
 from datetime import timedelta
 from datetime import date as dtdate
-from typing import Dict, Tuple, Sequence
 
+# from typing import Dict, Tuple, Sequence
+# import json
 # from dateutil import parser
 # from dateutil.parser._parser import ParserError
 
-
 # Third Party
 import dateutil
-from dateutil.relativedelta import *
-from dateutil.rrule import rrule, WEEKLY
-from dateutil.rrule import SU, MO, TU, WE, TH, FR, SA
+from dateutil.relativedelta import relativedelta
+from dateutil.rrule import SU, MO, TU, WE, TH, FR, SA  # noqa F401
 from temporal import redis as temporal_redis  # alias to distinguish from Third Party module
+# from dateutil.rrule import rrule, WEEKLY
 # from six import iteritems
 
 # Frappe modules.
 import frappe
-from frappe import _, throw, msgprint
+from frappe import _, throw, msgprint  # noqa F401
 
 # Constants
 __version__ = '13.0.0'
 EPOCH_YEAR = 2020
 END_YEAR = 2050
+MIN_YEAR = 2000
+MAX_YEAR = 2201
 
 # Module Typing: https://docs.python.org/3.8/library/typing.html#module-typing
 
-WEEKDAYS_SUN = ( 'SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT')
-WEEKDAYS_SUNDAY = ( 'Sunday', 'Monday', 'Tuedsay', 'Wednesday', 'Thursday', 'Friday', 'Saturday')
-WEEKDAYS_MON = ( 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN')
+WEEKDAYS = (
+	{ 'name_short': 'SUN', 'name_long': 'Sunday' },
+	{ 'name_short': 'MON', 'name_long': 'Monday' },
+	{ 'name_short': 'TUE', 'name_long': 'Tuesday' },
+	{ 'name_short': 'WED', 'name_long': 'Wednesday' },
+	{ 'name_short': 'THU', 'name_long': 'Thursday' },
+	{ 'name_short': 'FRI', 'name_long': 'Friday' },
+	{ 'name_short': 'SAT', 'name_long': 'Saturday' },
+)
+
+WEEKDAYS_SUN0 = (
+	{ 'pos': 0, 'name_short': 'SUN', 'name_long': 'Sunday' },
+	{ 'pos': 1, 'name_short': 'MON', 'name_long': 'Monday' },
+	{ 'pos': 2, 'name_short': 'TUE', 'name_long': 'Tuesday' },
+	{ 'pos': 3, 'name_short': 'WED', 'name_long': 'Wednesday' },
+	{ 'pos': 4, 'name_short': 'THU', 'name_long': 'Thursday' },
+	{ 'pos': 5, 'name_short': 'FRI', 'name_long': 'Friday' },
+	{ 'pos': 6, 'name_short': 'SAT', 'name_long': 'Saturday' })
+
+WEEKDAYS_MON0 = (
+	{ 'pos': 0, 'name_short': 'MON', 'name_long': 'Monday' },
+	{ 'pos': 1, 'name_short': 'TUE', 'name_long': 'Tuesday' },
+	{ 'pos': 2, 'name_short': 'WED', 'name_long': 'Wednesday' },
+	{ 'pos': 3, 'name_short': 'THU', 'name_long': 'Thursday' },
+	{ 'pos': 4, 'name_short': 'FRI', 'name_long': 'Friday' },
+	{ 'pos': 5, 'name_short': 'SAT', 'name_long': 'Saturday' },
+	{ 'pos': 6, 'name_short': 'SUN', 'name_long': 'Sunday' })
+
+# WEEKDAYS_SUN = ( 'SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT')
+# WEEKDAYS_SUNDAY = ( 'Sunday', 'Monday', 'Tuedsay', 'Wednesday', 'Thursday', 'Friday', 'Saturday')
+# WEEKDAYS_MON = ( 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN')
 
 
 class TDate():
@@ -55,11 +84,17 @@ class TDate():
 		# operator overload: subtracting two TDates
 		return self.date - other.date
 
-	def day_of_week(self):
-		return (self.date.toordinal() % 7) + 1  # Sunday is 1st day of week
+	def day_of_week_int(self, zero_based=False):
+		""" Return an integer representing Day of Week (beginning with Sunday) """
+		if zero_based:
+			return self.date.toordinal() % 7  # Sunday being the 0th day of week
+		return (self.date.toordinal() % 7) + 1  # Sunday being the 1st day of week
 
-	def day_of_week_name(self):
-		return WEEKDAYS_SUNDAY[self.day_of_week() - 1]
+	def day_of_week_shortname(self):
+		return WEEKDAYS_SUN0[self.day_of_week_int() - 1]['name_short']
+
+	def day_of_week_longname(self):
+		return WEEKDAYS_SUN0[self.day_of_week_int() - 1]['name_long']
 
 	def day_of_month(self):
 		return self.date.day
@@ -85,6 +120,7 @@ class TDate():
 	def is_between(self, from_date, to_date):
 		return from_date <= self.date <= to_date
 
+
 class Week():
 	""" A calendar week, starting on Sunday, where the week containing January 1st is always week #1 """
 	def __init__(self, week_year, week_number, set_of_days, date_start, date_end):
@@ -94,6 +130,7 @@ class Week():
 		self.days = set_of_days
 		self.date_start = date_start
 		self.date_end = date_end
+
 
 class Builder():
 	""" This class is used to build the temporal data (which we're storing in Redis) """
@@ -125,7 +162,7 @@ class Builder():
 
 		year_range = range(self.epoch_year, self.end_year + 1)  # because Python ranges are not inclusive
 		self.years = tuple(year_range)
-		self.weekdays = WEEKDAYS_SUN if start_of_week == 'SUN' else WEEKDAYS_MON
+		self.weekday_names = WEEKDAYS_SUN0 if start_of_week == 'SUN' else WEEKDAYS_MON0
 		self.week_dicts = []  # this will get populated as we build.
 
 	@staticmethod
@@ -149,7 +186,7 @@ class Builder():
 	def build_year(self, year):
 		""" Create a dictionary of Year metadata and write to Redis. """
 		date_start = dtdate(year, 1, 1)
-		date_end = dtdate(year,12,31)
+		date_end = dtdate(year, 12, 31)
 		days_in_year = (date_end - date_start).days + 1
 		jan_one_dayname = date_start.strftime("%a").upper()
 		year_dict = {}
@@ -161,13 +198,13 @@ class Builder():
 		year_dict['jan_one_dayname'] = jan_one_dayname
 		year_dict['jan_one_weekpos'] = self.weekdays.index(jan_one_dayname) + 1  # because zero-based indexing
 		# Get the maximum week number (52 or 53)
-		max_week_number = max(foo['week_number'] for foo in self.week_dicts if foo['year'] == year)
+		max_week_number = max(week['week_number'] for week in self.week_dicts if week['year'] == year)
 		year_dict['max_week_number'] = max_week_number
 
 		temporal_redis.write_single_year(year_dict, self.debug_mode)
 
 	def build_days(self):
-		start_date = dtdate(self.epoch_year,1,1)  # could also do self.years[0]
+		start_date = dtdate(self.epoch_year, 1, 1)  # could also do self.years[0]
 		end_date = dtdate(self.end_year, 12, 31)  # could also do self.years[-1]
 
 		count = 0
@@ -175,9 +212,9 @@ class Builder():
 			day_dict = {}
 			day_dict['date'] = date_foo
 			day_dict['date_as_string'] = day_dict['date'].strftime("%Y-%m-%d")
-			day_dict['weekday_name'] =  date_foo.strftime("%A")
+			day_dict['weekday_name'] = date_foo.strftime("%A")
 			day_dict['weekday_name_short'] = date_foo.strftime("%a")
-			day_dict['day_of_month'] =  date_foo.strftime("%d")
+			day_dict['day_of_month'] = date_foo.strftime("%d")
 			day_dict['month_in_year_int'] = date_foo.strftime("%m")
 			day_dict['month_in_year_str'] = date_foo.strftime("%B")
 			day_dict['year'] = date_foo.year
@@ -196,7 +233,7 @@ class Builder():
 	def build_weeks(self):
 		""" Build all the weeks between Epoch Date and End Date """
 		# Begin on January 1st
-		jan1_date = dtdate(self.epoch_year,1,1)
+		jan1_date = dtdate(self.epoch_year, 1, 1)
 		jan1_day_of_week = int(jan1_date.strftime("%w"))  # day of week for January 1st
 
 		week_start_date = jan1_date - timedelta(days=jan1_day_of_week)  # if January 1st is not Sunday, back up.
@@ -238,6 +275,7 @@ class Builder():
 		if self.debug_mode:
 			print(f"\u2713 Created {count} Temporal Week keys in Redis.")
 
+
 class Internals():
 	""" Internal functions that should not be called outside of Temporal. """
 	@staticmethod
@@ -263,12 +301,12 @@ class Internals():
 		if (any_date.day_of_month() == 1) and (any_date.month_of_year() == 1):
 			return (any_date.year(), 1)
 		# SCENARIO 2A: Week 1, after January 1st
-		if (any_date.day_of_week() > jan1.day_of_week()) and ((any_date-jan1).days in range(1,7)):
+		if (any_date.day_of_week() > jan1.day_of_week()) and ((any_date - jan1).days in range(1, 7)):
 			if verbose:
 				print("Scenario 2A; target date part of Week 1.")
 			return (any_date.year(), 1)
 		# SCENARIO 2B: Week 1, before NEXT January 1st
-		if (any_date.day_of_week() < jan1_next.day_of_week()) and ((jan1_next-any_date).days in range(1,7)):
+		if (any_date.day_of_week() < jan1_next.day_of_week()) and ((jan1_next - any_date).days in range(1, 7)):
 			if verbose:
 				print("Scenario 2B; target date near beginning of Future Week 1.")
 			return (any_date.year() + 1, 1)
@@ -286,6 +324,7 @@ class Internals():
 	def get_year_from_frappedate(frappe_date):
 		return int(frappe_date[:4])
 
+
 # ----------------
 # Public Functions
 # ----------------
@@ -298,6 +337,7 @@ def date_range(start_date, end_date):
 	for number_of_days in range(int((end_date - start_date).days) + 1):
 		yield start_date + timedelta(number_of_days)
 
+
 def date_range_from_strdates(start_date_str, end_date_str):
 	""" Generator for an inclusive range of date-strings. """
 	if not isinstance(start_date_str, str):
@@ -308,40 +348,33 @@ def date_range_from_strdates(start_date_str, end_date_str):
 	end_date = datestr_to_date(end_date_str)
 	return date_range(start_date, end_date)
 
+
 def date_to_datekey(any_date):
 	if not isinstance(any_date, datetime.date):
 		raise Exception(f"Argument 'any_date' should have type 'datetime.date', not '{type(any_date)}'")
 	date_as_string = any_date.strftime("%Y-%m-%d")
 	return f"temporal/day/{date_as_string}"
 
+
 def get_calendar_years():
 	""" Fetch calendar years from Redis. """
 	return temporal_redis.read_years()
+
 
 def get_calendar_year(year):
 	""" Fetch a Year dictionary from Redis. """
 	return temporal_redis.read_single_year(year)
 
 
+# ----------------
+# Weeks
+# ----------------
+
 def week_to_weekkey(year, week_number):
 	if not isinstance(week_number, int):
 		raise TypeError("Argument 'week_number' should be a Python integer.")
 	week_as_string = str(week_number).zfill(2)
 	return f"temporal/week/{year}-{week_as_string}"
-
-
-def get_date_metadata(any_date):
-	""" This function returns a date dictionary from Redis.
-
-		bench execute --args "{'2021-04-18'}" temporal.get_date_metadata
-
-	 """
-	if isinstance(any_date, str):
-		any_date = datetime.datetime.strptime(any_date, '%Y-%m-%d').date()
-	if not isinstance(any_date, datetime.date):
-		raise Exception(f"Argument 'any_date' should have type 'datetime.date', not '{type(any_date)}'")
-
-	return temporal_redis.read_single_day(date_to_datekey(any_date))
 
 
 def get_week_by_weeknum(year, week_number):
@@ -353,9 +386,9 @@ def get_week_by_weeknum(year, week_number):
 		return None
 	return Week(week_dict['year'],
 	            week_dict['week_number'],
-				week_dict['week_dates'],
-				week_dict['week_start'],
-				week_dict['week_end'])
+	            week_dict['week_dates'],
+	            week_dict['week_start'],
+	            week_dict['week_end'])
 
 
 def get_week_by_anydate(any_date):
@@ -380,11 +413,11 @@ def get_weeks_as_dict(year, from_week_num, to_week_num):
 	from_week_num = int(from_week_num)
 	to_week_num = int(to_week_num)
 
-	if year not in range(2000,2201):
+	if year not in range(MIN_YEAR, MAX_YEAR):
 		raise Exception(f"Invalid value '{year}' for argument 'year'")
-	if from_week_num not in range(1,54):  # 53 possible week numbers.
+	if from_week_num not in range(1, 54):  # 53 possible week numbers.
 		raise Exception(f"Invalid value '{from_week_num}' for argument 'from_week_num'")
-	if to_week_num not in range(1,54):  # 53 possible week numbers.
+	if to_week_num not in range(1, 54):  # 53 possible week numbers.
 		raise Exception(f"Invalid value '{to_week_num}' for argument 'to_week_num'")
 
 	weeks_list = []
@@ -398,31 +431,6 @@ def get_weeks_as_dict(year, from_week_num, to_week_num):
 def datestr_to_week_number(date_as_string):
 	""" Given a string date, return the Week Number. """
 	return Internals.date_to_week_tuple(datestr_to_date(date_as_string), verbose=False)
-
-
-def is_invalid_date_string(date_string):
-	# dateutil parser does not agree with dates like "0001-01-01" or "0000-00-00"
-	return (not date_string) or (date_string or "").startswith(("0001-01-01", "0000-00-00"))
-
-
-def datestr_to_date(date_as_string):
-	"""
-	Converts string date (yyyy-mm-dd) to datetime.date object.
-	"""		
-	if not date_as_string:
-		return None
-	if not isinstance(date_as_string, str):
-		raise TypeError(f"Argument 'date_as_string' should be of type String, not '{type(date_as_string)}'")
-	if is_invalid_date_string(date_as_string):
-		return None
-
-	try:
-		return dateutil.parser.parse(date_as_string).date()
-		# return datetime.datetime.strptime(date_as_string,"%Y-%m-%d").date()
-	except  dateutil.parser._parser.ParserError:
-		frappe.throw(frappe._('{} is not a valid date string.').format(
-			frappe.bold(date_as_string)
-		), title=frappe._('Invalid Date'))
 
 
 def week_generator(from_date, to_date):
@@ -460,5 +468,120 @@ def week_generator(from_date, to_date):
 		else:
 			end_index = year_dict['max_week_number']
 
-		for week_num in range(start_index, end_index+1):
+		for week_num in range(start_index, end_index + 1):
 			yield get_week_by_weeknum(year, week_num)  # A class of type 'Week'
+
+
+# ----------------
+# Other
+# ----------------
+
+def get_date_metadata(any_date):
+	""" This function returns a date dictionary from Redis.
+
+		bench execute --args "{'2021-04-18'}" temporal.get_date_metadata
+
+	 """
+	if isinstance(any_date, str):
+		any_date = datetime.datetime.strptime(any_date, '%Y-%m-%d').date()
+	if not isinstance(any_date, datetime.date):
+		raise Exception(f"Argument 'any_date' should have type 'datetime.date', not '{type(any_date)}'")
+
+	return temporal_redis.read_single_day(date_to_datekey(any_date))
+
+
+def is_invalid_date_string(date_string):
+	# dateutil parser does not agree with dates like "0001-01-01" or "0000-00-00"
+	return (not date_string) or (date_string or "").startswith(("0001-01-01", "0000-00-00"))
+
+
+def any_to_date(date_as_unknown):
+	"""
+	Given an argument of unknown Type, try to return a DateTime.
+	"""
+	try:
+		if not date_as_unknown:
+			return None
+		if isinstance(date_as_unknown, str):
+			return dateutil.parser.parse(date_as_unknown).date()
+			# Alternately: return datetime.datetime.strptime(date_as_string,"%Y-%m-%d").date()
+		if isinstance(date_as_unknown, datetime.date):
+			return date_as_unknown
+
+	except dateutil.parser._parser.ParserError:  # pylint: disable=protected-access
+		frappe.throw(frappe._('{} is not a valid date string.')
+		             .format(frappe.bold(date_as_unknown)),
+		             title=frappe._('Invalid Date'))
+
+	raise TypeError(f"Unhandled type ({type(date_as_unknown)}) for argument to function any_to_date()")
+
+
+def datestr_to_date(date_as_string):
+	"""
+	Converts string date (yyyy-mm-dd) to datetime.date object.
+	"""
+	if not date_as_string:
+		return None
+	if not isinstance(date_as_string, str):
+		raise TypeError(f"Argument 'date_as_string' should be of type String, not '{type(date_as_string)}'")
+	if is_invalid_date_string(date_as_string):
+		return None
+
+	try:
+		return dateutil.parser.parse(date_as_string).date()
+		# return datetime.datetime.strptime(date_as_string,"%Y-%m-%d").date()
+	except dateutil.parser._parser.ParserError:  # pylint: disable=protected-access
+		frappe.throw(frappe._('{} is not a valid date string.')
+		             .format(frappe.bold(date_as_string)),
+		             title=frappe._('Invalid Date'))
+
+
+def date_to_sql_string(any_date):
+	"""
+	Given a date, create a String that MariaDB understands for queries (YYYY-MM-DD)
+	"""
+	if not isinstance(any_date, datetime.date):
+		raise Exception(f"Argument 'any_date' should have type 'datetime.date', not '{type(any_date)}'")
+	return any_date.strftime("%Y-%m-%d")
+
+
+# ----------------
+# Weekdays
+# ----------------
+
+def weekday_string_to_shortname(weekday_string):
+	"""
+	Given a weekday name (MON, Monday, MONDAY), convert it to the short name.
+	"""
+	if weekday_string.upper() in (day['name_short'] for day in WEEKDAYS):
+		return weekday_string.upper()
+
+	ret = next(day['name_short'] for day in WEEKDAYS if day['name_long'].upper() == weekday_string.upper())
+	return ret
+
+
+def weekday_int_from_name(weekday_name, first_day_of_week='SUN'):
+	"""
+	Return the position of a Weekday in a Week.
+	"""
+	weekday_short_name = weekday_string_to_shortname(weekday_name)
+	if first_day_of_week == 'SUN':
+		result = next(weekday['pos'] for weekday in WEEKDAYS_SUN0 if weekday['name_short'] == weekday_short_name)
+	elif first_day_of_week == 'MON':
+		result = next(weekday['pos'] for weekday in WEEKDAYS_MON0 if weekday['name_short'] == weekday_short_name)
+	else:
+		raise Exception("Invalid first day of week (expected SUN or MON)")
+	return result
+
+
+def next_weekday_after_date(weekday, any_date):
+	weekday_int = None
+	if isinstance(weekday, int):
+		weekday_int = weekday
+	elif isinstance(weekday, str):
+		weekday_int = weekday_int_from_name(weekday, first_day_of_week='MON')  # Monday-based math below
+
+	days_ahead = weekday_int - any_date.weekday()
+	if days_ahead <= 0:  # Target day already happened this week
+		days_ahead += 7
+	return any_date + datetime.timedelta(days_ahead)
