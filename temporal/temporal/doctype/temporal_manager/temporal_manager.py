@@ -12,6 +12,7 @@ from frappe.model.document import Document
 
 import temporal
 
+
 class TemporalManager(Document):
 	""" This DocType just provides a mechanism for displaying buttons on the page. """
 	@frappe.whitelist()

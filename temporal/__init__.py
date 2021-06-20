@@ -196,7 +196,7 @@ class Builder():
 		year_dict['days_in_year'] = days_in_year
 		# What day of the week is January 1st?
 		year_dict['jan_one_dayname'] = jan_one_dayname
-		year_dict['jan_one_weekpos'] = self.weekdays.index(jan_one_dayname) + 1  # because zero-based indexing
+		year_dict['jan_one_weekpos'] = self.weekday_names.index(jan_one_dayname) + 1  # because zero-based indexing
 		# Get the maximum week number (52 or 53)
 		max_week_number = max(week['week_number'] for week in self.week_dicts if week['year'] == year)
 		year_dict['max_week_number'] = max_week_number
