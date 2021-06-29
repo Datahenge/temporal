@@ -8,18 +8,11 @@ import datetime
 from datetime import timedelta
 from datetime import date as dtdate
 
-# from typing import Dict, Tuple, Sequence
-# import json
-# from dateutil import parser
-# from dateutil.parser._parser import ParserError
-
 # Third Party
 import dateutil
 from dateutil.relativedelta import relativedelta
 from dateutil.rrule import SU, MO, TU, WE, TH, FR, SA  # noqa F401
 from temporal import redis as temporal_redis  # alias to distinguish from Third Party module
-# from dateutil.rrule import rrule, WEEKLY
-# from six import iteritems
 
 # Frappe modules.
 import frappe
