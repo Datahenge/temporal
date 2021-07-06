@@ -189,7 +189,11 @@ class Builder():
 		year_dict['days_in_year'] = days_in_year
 		# What day of the week is January 1st?
 		year_dict['jan_one_dayname'] = jan_one_dayname
-		year_dict['jan_one_weekpos'] = self.weekday_names.index(jan_one_dayname) + 1  # because zero-based indexing
+		try:
+			weekday_short_names = tuple(weekday['name_short'] for weekday in self.weekday_names)
+			year_dict['jan_one_weekpos'] = weekday_short_names.index(jan_one_dayname) + 1  # because zero-based indexing
+		except ValueError as ex:
+			raise ValueError(f"Could not find value '{jan_one_dayname}' in tuple 'self.weekday_names' = {self.weekday_names}") from ex
 		# Get the maximum week number (52 or 53)
 		max_week_number = max(week['week_number'] for week in self.week_dicts if week['year'] == year)
 		year_dict['max_week_number'] = max_week_number
@@ -279,7 +283,7 @@ class Internals():
 		if not isinstance(any_date, datetime.date):
 			raise TypeError("Argument must be of type 'datetime.date'")
 
-		any_date = TDate(any_date)
+		any_date = TDate(any_date)  # recast as a Temporal TDate
 		jan1 = any_date.jan1()
 		jan1_next = any_date.jan1_next_year()
 
@@ -294,12 +298,14 @@ class Internals():
 		if (any_date.day_of_month() == 1) and (any_date.month_of_year() == 1):
 			return (any_date.year(), 1)
 		# SCENARIO 2A: Week 1, after January 1st
-		if (any_date.day_of_week() > jan1.day_of_week()) and ((any_date - jan1).days in range(1, 7)):
+		if  ( any_date.day_of_week_int() > jan1.day_of_week_int() ) and \
+			( (any_date - jan1).days in range(1, 7)):
 			if verbose:
 				print("Scenario 2A; target date part of Week 1.")
 			return (any_date.year(), 1)
 		# SCENARIO 2B: Week 1, before NEXT January 1st
-		if (any_date.day_of_week() < jan1_next.day_of_week()) and ((jan1_next - any_date).days in range(1, 7)):
+		if  ( any_date.day_of_week_int() < jan1_next.day_of_week_int() ) and \
+			( (jan1_next - any_date).days in range(1, 7)):
 			if verbose:
 				print("Scenario 2B; target date near beginning of Future Week 1.")
 			return (any_date.year() + 1, 1)

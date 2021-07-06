@@ -25,14 +25,24 @@
    "dependencies": "",
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Temporal Manager",
-   "link_to": "Temporal Manager",
+   "label": "Temporal Dates",
+   "link_to": "Temporal Dates",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
+  },
+  {
+	"dependencies": "",
+	"hidden": 0,
+	"is_query_report": 0,
+	"label": "Temporal Manager",
+	"link_to": "Temporal Manager",
+	"link_type": "DocType",
+	"onboard": 0,
+	"type": "Link"
   }
  ],
- "modified": "2021-06-02 17:12:12.600116",
+ "modified": "2021-07-04 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Temporal",
  "name": "Temporal",
@@ -41,9 +51,14 @@
  "pin_to_top": 0,
  "shortcuts": [
   {
-   "label": "Temporal Manager",
-   "link_to": "Temporal Manager",
+   "label": "Temporal Dates",
+   "link_to": "Temporal Dates",
    "type": "DocType"
-  }
+  },
+  {
+	"label": "Temporal Manager",
+	"link_to": "Temporal Manager",
+	"type": "DocType"
+   }
  ]
 }

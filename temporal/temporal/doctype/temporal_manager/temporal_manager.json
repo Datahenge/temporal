@@ -1,4 +1,5 @@
 {
+ "actions": [],
  "allow_copy": 1,
  "creation": "2021-04-20 11:55:54.814929",
  "doctype": "DocType",
@@ -9,15 +10,17 @@
   "debug_mode",
   "start_year",
   "end_year",
+  "actions_section",
   "btn_show_weeks",
-  "btn_rebuild_calendar_cache"
+  "btn_rebuild_calendar_cache",
+  "btn_rebuild_temporal_dates"
  ],
  "fields": [
   {
    "fieldname": "btn_show_weeks",
    "fieldtype": "Button",
    "label": "Show Weeks",
-   "options": "btn_show_weeks"
+   "options": "button_show_weeks"
   },
   {
    "description": "The purpose of this DocType is to provide a type of \"dashboard\" for the Temporal App.",
@@ -29,7 +32,7 @@
    "fieldname": "btn_rebuild_calendar_cache",
    "fieldtype": "Button",
    "label": "Rebuild Calendar Cache",
-   "options": "btn_rebuild_calendar_cache"
+   "options": "button_rebuild_calendar_cache"
   },
   {
    "fieldname": "end_year",
@@ -48,12 +51,25 @@
    "fieldname": "debug_mode",
    "fieldtype": "Check",
    "label": "Debug Mode"
+  },
+  {
+   "fieldname": "actions_section",
+   "fieldtype": "Section Break",
+   "label": "Actions"
+  },
+  {
+   "description": "Repopulate the SQL table `tabTemporal Dates`",
+   "fieldname": "btn_rebuild_temporal_dates",
+   "fieldtype": "Button",
+   "label": "Rebuild Dates Table",
+   "options": "button_rebuild_temporal_dates"
   }
  ],
  "hide_toolbar": 1,
  "in_create": 1,
  "issingle": 1,
- "modified": "2021-05-06 12:25:25.088553",
+ "links": [],
+ "modified": "2021-07-04 14:40:55.163315",
  "modified_by": "Administrator",
  "module": "Temporal",
  "name": "Temporal Manager",

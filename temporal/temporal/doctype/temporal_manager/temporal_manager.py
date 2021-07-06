@@ -12,19 +12,30 @@ from frappe.model.document import Document
 
 import temporal
 
+#
+#  Button Naming Convention:  Python functions start with 'button', while DocField names are 'btn'
+#
 
 class TemporalManager(Document):
 	""" This DocType just provides a mechanism for displaying buttons on the page. """
 	@frappe.whitelist()
-	def btn_show_weeks(self):
+	def button_show_weeks(self):
 		frappe.msgprint(_("DEBUG: Calling frappe.publish_realtime.  This should open a dialog, but it does not (known bug 4 June 2021)"))
 		frappe.publish_realtime("Dialog Show Redis Weeks", user=frappe.session.user)
 
 	@frappe.whitelist()
-	def btn_rebuild_calendar_cache(self):
+	def button_rebuild_calendar_cache(self):
 		""" Create a calendar records in Redis.
 		    * Start and End Years will default from the DocType 'Temporal Manager'
 			* If no values exist in 'Temporal Manager', there are hard-coded values in temporal.Builder()
 		"""
 		temporal.Builder.build_all()
 		frappe.msgprint(_("Finished rebuilding Redis Calendar."))
+
+	@frappe.whitelist()
+	def button_rebuild_temporal_dates(self):
+		"""
+			Open the .SQL file in the module, and execute to populate `tabTemporal Dates`
+		"""
+		# TODO : Button not-yet implemented.  For now you can run the SQL manually.
+		frappe.msgprint("Button not-yet implemented.  For now you can run the SQL manually.")

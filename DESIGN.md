@@ -1,5 +1,18 @@
 ## Regarding Calendars and other Temporal features.
 
+### MySQL
+While creating queries to answer the question: "How much inventory will I have on FutureDate?"
+I needed to join On Hand inventory (`tabBin`) against future dates.  However, you cannot write a Table
+Valued Function in MySQL.  That feature doesn't exist.  So I couldn't write a function to return the next N
+days.
+
+Luckily, this is not necessary.  Future calendar dates are fixed datapoints; they aren't going to change.  I
+can just permanently store them.  So I created a new DocType `tabTemporal Dates`
+
+
+
+
+## Testing
 ### Testing Redis
 I highly recommend downloading [Another Redis Desktop Manager](https://www.electronjs.org/apps/anotherredisdesktopmanager)
 
@@ -20,6 +33,8 @@ To run these tests:
 1. `bench --site <sitename> set-config allow_tests true`
 2. ` bench run-tests --module "temporal.temporal.test_temporal"`
 
+### MySQL Keywords and Reserved Words
+https://dev.mysql.com/doc/refman/8.0/en/keywords.html#keywords-8-0-detailed-D
 
 ### 1. Calendar Years
 These are straightforward.  They are stored in Redis for performance reasons.

@@ -9,6 +9,7 @@ frappe.ui.form.on('Temporal Manager', {
 			console.log("Caught 1 inside of JS.");
 			dialog_show_redis_weeks();
 		});
+
 	}
 });
 

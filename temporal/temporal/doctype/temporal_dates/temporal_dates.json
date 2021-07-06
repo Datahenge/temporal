@@ -1,0 +1,56 @@
+{
+ "actions": [],
+ "autoname": "field:calendar_date",
+ "creation": "2021-07-03 10:34:12.186271",
+ "description": "Because sometimes you need a SQL table full of calendar dates.",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "calendar_date",
+  "day_name"
+ ],
+ "fields": [
+  {
+   "bold": 1,
+   "fieldname": "calendar_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Calendar Date",
+   "read_only": 1,
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "day_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Day Name",
+   "reqd": 1
+  }
+ ],
+ "links": [],
+ "modified": "2021-07-03 13:18:56.520121",
+ "modified_by": "Administrator",
+ "module": "Temporal",
+ "name": "Temporal Dates",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "calendar_date",
+ "sort_order": "DESC",
+ "title_field": "calendar_date"
+}
