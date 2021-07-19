@@ -1,4 +1,5 @@
 {
+ "cards_label": "Link Cards",
  "category": "Modules",
  "charts": [],
  "creation": "2021-06-19 22:25:32.791366",
@@ -12,8 +13,18 @@
  "is_default": 0,
  "is_standard": 1,
  "label": "Development",
- "links": [],
- "modified": "2021-06-19 22:28:26.568428",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Email Queue",
+   "link_to": "Email Queue",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2021-07-14 14:43:16.820059",
  "modified_by": "Administrator",
  "module": "Temporal",
  "name": "Development",
@@ -25,6 +36,12 @@
    "doc_view": "List",
    "label": "DocTypes",
    "link_to": "DocType",
+   "type": "DocType"
+  },
+  {
+   "doc_view": "List",
+   "label": "Scheduled Job Log",
+   "link_to": "Scheduled Job Log",
    "type": "DocType"
   }
  ]

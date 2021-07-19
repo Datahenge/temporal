@@ -12,11 +12,13 @@ from datetime import date as dtdate
 import dateutil
 from dateutil.relativedelta import relativedelta
 from dateutil.rrule import SU, MO, TU, WE, TH, FR, SA  # noqa F401
-from temporal import redis as temporal_redis  # alias to distinguish from Third Party module
 
 # Frappe modules.
 import frappe
 from frappe import _, throw, msgprint  # noqa F401
+
+# Temporal
+from temporal import redis as temporal_redis  # alias to distinguish from Third Party module
 
 # Constants
 __version__ = '13.0.0'
@@ -58,6 +60,20 @@ WEEKDAYS_MON0 = (
 # WEEKDAYS_SUN = ( 'SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT')
 # WEEKDAYS_SUNDAY = ( 'Sunday', 'Monday', 'Tuedsay', 'Wednesday', 'Thursday', 'Friday', 'Saturday')
 # WEEKDAYS_MON = ( 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN')
+
+def validate_datatype(argument_name, argument_value, expected_type, mandatory=False):
+	"""
+	A helpful generic function for checking a variable's datatype, and throwing an error on mismatches.
+	Absolutely necessary when dealing with extremely complex Python programs that talk to SQL, HTTP, Redis, etc.
+	"""
+	if mandatory and (not argument_value):
+		raise ValueError(f"Argument '{argument_name}' is mandatory.")
+	if not argument_value:
+		return  # datatype is going to be a NoneType, which is okay if not mandatory.
+	if not isinstance(argument_value, expected_type):
+		msg = f"Argument '{argument_name}' should be of type = '{expected_type.__name__}'"
+		msg += f"<br>Found a {type(argument_value).__name__} with value '{argument_value}' instead."
+		raise TypeError(msg)
 
 
 class TDate():
@@ -348,6 +364,49 @@ def date_range_from_strdates(start_date_str, end_date_str):
 	return date_range(start_date, end_date)
 
 
+def date_generator_type_1(start_date, increments_of, earliest_result_date):
+	"""
+	Given a start date, increment N number of days.
+	First result can be no earlier than 'earliest_result_date'
+	"""
+	iterations = 0
+	next_date = start_date
+	while True:
+		iterations += 1
+		if (iterations == 1) and (start_date == earliest_result_date):  # On First Iteration, if dates match, yield Start Date.
+			yield start_date
+		else:
+			next_date = next_date + timedelta(days=increments_of)
+			if next_date >= earliest_result_date:
+				yield next_date
+
+
+def calc_future_dates(epoch_date, multiple_of_days, earliest_result_date, qty_of_result_dates):
+	"""
+		Purpose: Predict future dates, based on an epoch date and multiple.
+		Returns: A List of Dates
+
+		Arguments
+		epoch_date:           The date from which the calculation begins.
+		multiple_of_days:     In every iteration, how many days do we move forward?
+		no_earlier_than:      What is earliest result date we want to see?
+		qty_of_result_dates:  How many qualifying dates should this function return?
+	"""
+	validate_datatype("epoch_date", epoch_date, dtdate)
+	validate_datatype("multiple_of_days", multiple_of_days, int)
+	validate_datatype("earliest_result_date", earliest_result_date, dtdate)
+	validate_datatype("qty_of_result_dates", qty_of_result_dates, int)
+
+	if earliest_result_date < epoch_date:
+		raise ValueError("The 'earliest_result_date' cannot precede the 'epoch_date'")
+
+	this_generator = date_generator_type_1(epoch_date, multiple_of_days, earliest_result_date)
+	ret = []
+	for _ in range(qty_of_result_dates):  # underscore because we don't actually need the index.
+		ret.append(next(this_generator))
+	return ret
+
+
 def date_to_datekey(any_date):
 	if not isinstance(any_date, datetime.date):
 		raise Exception(f"Argument 'any_date' should have type 'datetime.date', not '{type(any_date)}'")
@@ -527,7 +586,8 @@ def datestr_to_date(date_as_string):
 		return None
 
 	try:
-		return dateutil.parser.parse(date_as_string).date()
+		# Explicit is Better than Implicit.  The format should be YYYY-MM-DD.
+		return dateutil.parser.parse(date_as_string, yearfirst=True, dayfirst=False).date()
 		# return datetime.datetime.strptime(date_as_string,"%Y-%m-%d").date()
 	except dateutil.parser._parser.ParserError:  # pylint: disable=protected-access
 		frappe.throw(frappe._('{} is not a valid date string.')

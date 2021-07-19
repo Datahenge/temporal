@@ -25,7 +25,6 @@ class TestTemporal(unittest.TestCase):
 	def tearDown(self):
 		frappe.set_user("Administrator")
 
-
 	def test_weekday_name(self):
 		this_date = date(2021, 4, 17)  # April 17th is a Saturday
 		retval = temporal.get_date_metadata(this_date)['weekday_name']
@@ -50,6 +49,27 @@ class TestTemporal(unittest.TestCase):
 		# Test what Redis has stored in its database.
 		retval = temporal.get_date_metadata(this_date)['week_number']
 		self.assertTrue(retval == 18)
+
+	def test_future_dates_calculator(self):
+		# Test a 7 day iteration.
+		retval = temporal.calc_future_dates(epoch_date=date(2021, 7, 1),
+		                                    multiple_of_days=7,
+											earliest_result_date= date(2021, 7, 16),
+											qty_of_result_dates=4)
+		self.assertTrue(retval == [ date(2021, 7, 22),
+		                            date(2021, 7, 29),
+		                            date(2021, 8, 5),
+			                        date(2021, 8, 12) ])
+
+		# Test a 14 day iteration.
+		retval = temporal.calc_future_dates(epoch_date=date(2021, 7, 1),
+		                                    multiple_of_days=14,
+											earliest_result_date= date(2021, 7, 16),
+											qty_of_result_dates=4)
+		self.assertTrue(retval == [ date(2021, 7, 29),
+		                            date(2021, 8, 12),
+		                            date(2021, 8, 26),
+			                        date(2021, 9, 9) ])
 
 
 def custom_test_one(year):

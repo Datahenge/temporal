@@ -27,11 +27,12 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Day Name",
+   "read_only": 1,
    "reqd": 1
   }
  ],
  "links": [],
- "modified": "2021-07-03 13:18:56.520121",
+ "modified": "2021-07-07 10:24:11.939888",
  "modified_by": "Administrator",
  "module": "Temporal",
  "name": "Temporal Dates",
