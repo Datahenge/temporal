@@ -492,8 +492,9 @@ def datestr_to_week_number(date_as_string):
 
 
 def week_generator(from_date, to_date):
-	""" Return a Python Generator for all the weeks in a date range. """
-
+	"""
+	Return a Python Generator for all the weeks in a date range.
+	"""
 	if from_date > to_date:
 		raise ValueError("Argument 'from_date' cannot be greater than argument 'to_date'")
 	# If dates are the same, simply return the 1 week.
@@ -502,10 +503,10 @@ def week_generator(from_date, to_date):
 
 	from_week = get_week_by_anydate(from_date)  # Class of type 'Week'
 	if not from_week:
-		raise Exception(f"Unable to find a Week for date {from_date} (Temporal week_generator())")
+		raise Exception(f"Unable to find a Week for date {from_date}. (Temporal week_generator() and Cache)")
 	to_week = get_week_by_anydate(to_date)  # Class of type 'Week'
 	if not to_week:
-		raise Exception(f"Unable to find a Week for date {to_date} (Temporal week_generator())")
+		raise Exception(f"Unable to find a Week for date {to_date} (Temporal week_generator() and Cache)")
 
 	# results = []
 
