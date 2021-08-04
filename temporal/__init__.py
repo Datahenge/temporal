@@ -579,8 +579,12 @@ def datestr_to_date(date_as_string):
 	"""
 	Converts string date (yyyy-mm-dd) to datetime.date object.
 	"""
+
+	# ERPNext is very inconsistent with Date typing.  We should handle several possibilities:
 	if not date_as_string:
 		return None
+	if isinstance(date_as_string, datetime.date):
+		return date_as_string
 	if not isinstance(date_as_string, str):
 		raise TypeError(f"Argument 'date_as_string' should be of type String, not '{type(date_as_string)}'")
 	if is_invalid_date_string(date_as_string):
@@ -589,7 +593,8 @@ def datestr_to_date(date_as_string):
 	try:
 		# Explicit is Better than Implicit.  The format should be YYYY-MM-DD.
 		return dateutil.parser.parse(date_as_string, yearfirst=True, dayfirst=False).date()
-		# return datetime.datetime.strptime(date_as_string,"%Y-%m-%d").date()
+		# Here's another way of doing the same thing:
+		#     return datetime.datetime.strptime(date_as_string,"%Y-%m-%d").date()
 	except dateutil.parser._parser.ParserError:  # pylint: disable=protected-access
 		frappe.throw(frappe._('{} is not a valid date string.')
 		             .format(frappe.bold(date_as_string)),
