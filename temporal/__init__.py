@@ -609,6 +609,15 @@ def date_to_sql_string(any_date):
 		raise Exception(f"Argument 'any_date' should have type 'datetime.date', not '{type(any_date)}'")
 	return any_date.strftime("%Y-%m-%d")
 
+def get_earliest_date(list_of_dates):
+	if not all(isinstance(x, datetime.date) for x in list_of_dates):
+		raise ValueError("All values in argument must be datetime dates.")
+	return min(list_of_dates)
+
+def get_latest_date(list_of_dates):
+	if not all(isinstance(x, datetime.date) for x in list_of_dates):
+		raise ValueError("All values in argument must be datetime dates.")
+	return max(list_of_dates)
 
 # ----------------
 # Weekdays
