@@ -392,9 +392,11 @@ def calc_future_dates(epoch_date, multiple_of_days, earliest_result_date, qty_of
 		no_earlier_than:      What is earliest result date we want to see?
 		qty_of_result_dates:  How many qualifying dates should this function return?
 	"""
-	validate_datatype("epoch_date", epoch_date, dtdate)
+	# Convert to dates, always.
+	epoch_date = any_to_date(epoch_date)
+	earliest_result_date = any_to_date(earliest_result_date)
+	# Validate the remaining data types.
 	validate_datatype("multiple_of_days", multiple_of_days, int)
-	validate_datatype("earliest_result_date", earliest_result_date, dtdate)
 	validate_datatype("qty_of_result_dates", qty_of_result_dates, int)
 
 	if earliest_result_date < epoch_date:
