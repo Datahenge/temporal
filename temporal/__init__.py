@@ -61,6 +61,7 @@ WEEKDAYS_MON0 = (
 # WEEKDAYS_SUNDAY = ( 'Sunday', 'Monday', 'Tuedsay', 'Wednesday', 'Thursday', 'Friday', 'Saturday')
 # WEEKDAYS_MON = ( 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN')
 
+
 def validate_datatype(argument_name, argument_value, expected_type, mandatory=False):
 	"""
 	A helpful generic function for checking a variable's datatype, and throwing an error on mismatches.
