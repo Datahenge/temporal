@@ -603,6 +603,20 @@ def datestr_to_date(date_as_string):
 		             .format(frappe.bold(date_as_string)),
 		             title=frappe._('Invalid Date'))
 
+def timestr_to_time(time_as_string):
+	"""
+	Converts string time (8:30pm) to datetime.time object.
+	"""
+
+	"""
+	8pm
+	830pm
+	830 pm
+	8:30pm
+	20:30
+	8:30 pm
+	"""
+
 
 def date_to_sql_string(any_date):
 	"""
