@@ -15,7 +15,7 @@ from dateutil.rrule import SU, MO, TU, WE, TH, FR, SA  # noqa F401
 
 # Frappe modules.
 import frappe
-from frappe import _, throw, msgprint  # noqa F401
+from frappe import _, throw, msgprint, ValidationError  # noqa F401
 
 # Temporal
 from temporal import redis as temporal_redis  # alias to distinguish from Third Party module
@@ -26,6 +26,13 @@ EPOCH_YEAR = 2020
 END_YEAR = 2050
 MIN_YEAR = 2000
 MAX_YEAR = 2201
+
+class ArgumentMissing(ValidationError):
+	http_status_code = 500
+
+class ArgumentType(ValidationError):
+	http_status_code = 500
+
 
 # Module Typing: https://docs.python.org/3.8/library/typing.html#module-typing
 
@@ -67,14 +74,20 @@ def validate_datatype(argument_name, argument_value, expected_type, mandatory=Fa
 	A helpful generic function for checking a variable's datatype, and throwing an error on mismatches.
 	Absolutely necessary when dealing with extremely complex Python programs that talk to SQL, HTTP, Redis, etc.
 	"""
+	# Throw error if missing mandatory argument.
 	if mandatory and (not argument_value):
-		raise ValueError(f"Argument '{argument_name}' is mandatory.")
+		raise ArgumentMissing(f"Argument '{argument_name}' is mandatory.")
+
 	if not argument_value:
 		return argument_value  # datatype is going to be a NoneType, which is okay if not mandatory.
+
+	# Check argument type
 	if not isinstance(argument_value, expected_type):
 		msg = f"Argument '{argument_name}' should be of type = '{expected_type.__name__}'"
 		msg += f"<br>Found a {type(argument_value).__name__} with value '{argument_value}' instead."
-		raise TypeError(msg)
+		raise ArgumentType(msg)
+
+	# Otherwise, return the argument to the caller.
 	return argument_value
 
 
