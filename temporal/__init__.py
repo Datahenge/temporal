@@ -70,11 +70,12 @@ def validate_datatype(argument_name, argument_value, expected_type, mandatory=Fa
 	if mandatory and (not argument_value):
 		raise ValueError(f"Argument '{argument_name}' is mandatory.")
 	if not argument_value:
-		return  # datatype is going to be a NoneType, which is okay if not mandatory.
+		return argument_value  # datatype is going to be a NoneType, which is okay if not mandatory.
 	if not isinstance(argument_value, expected_type):
 		msg = f"Argument '{argument_name}' should be of type = '{expected_type.__name__}'"
 		msg += f"<br>Found a {type(argument_value).__name__} with value '{argument_value}' instead."
 		raise TypeError(msg)
+	return argument_value
 
 
 class TDate():
@@ -82,6 +83,10 @@ class TDate():
 	def __init__(self, any_date):
 		if not any_date:
 			raise TypeError("Class argument 'any_date' cannot be None.")
+		# To prevent a lot of downstream boilerplate, going to "assume" that strings
+		# passed to this class conform to "YYYY-MM-DD" format.
+		if isinstance(any_date, str):
+			any_date = datestr_to_date(any_date)
 		if not isinstance(any_date, datetime.date):
 			raise TypeError("Class argument 'any_date' must be a Python date.")
 		self.date = any_date
@@ -580,7 +585,7 @@ def any_to_date(date_as_unknown):
 
 def datestr_to_date(date_as_string):
 	"""
-	Converts string date (yyyy-mm-dd) to datetime.date object.
+	Converts string date (YYYY-MM-DD) to datetime.date object.
 	"""
 
 	# ERPNext is very inconsistent with Date typing.  We should handle several possibilities:
@@ -596,16 +601,16 @@ def datestr_to_date(date_as_string):
 	try:
 		# Explicit is Better than Implicit.  The format should be YYYY-MM-DD.
 		return dateutil.parser.parse(date_as_string, yearfirst=True, dayfirst=False).date()
-		# Here's another way of doing the same thing:
-		#     return datetime.datetime.strptime(date_as_string,"%Y-%m-%d").date()
+		# FYI, another way of doing the above: return datetime.datetime.strptime(date_as_string,"%Y-%m-%d").date()
 	except dateutil.parser._parser.ParserError:  # pylint: disable=protected-access
 		frappe.throw(frappe._('{} is not a valid date string.')
 		             .format(frappe.bold(date_as_string)),
 		             title=frappe._('Invalid Date'))
 
+
 def timestr_to_time(time_as_string):
 	"""
-	Converts string time (8:30pm) to datetime.time object.
+	Converts a string time (8:30pm) to datetime.time object.
 	"""
 
 	"""
