@@ -624,16 +624,15 @@ def datestr_to_date(date_as_string):
 def timestr_to_time(time_as_string):
 	"""
 	Converts a string time (8:30pm) to datetime.time object.
+	Examples:
+		8pm
+		830pm
+		830 pm
+		8:30pm
+		20:30
+		8:30 pm
 	"""
-
-	"""
-	8pm
-	830pm
-	830 pm
-	8:30pm
-	20:30
-	8:30 pm
-	"""
+	return time_as_string
 
 
 def date_to_sql_string(any_date):
