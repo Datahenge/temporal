@@ -9,7 +9,8 @@ from datetime import timedelta
 from datetime import date as dtdate
 
 # Third Party
-import dateutil
+# import dateutil
+import dateutil.parser  # https://stackoverflow.com/questions/48632176/python-dateutil-attributeerror-module-dateutil-has-no-attribute-parse
 from dateutil.relativedelta import relativedelta
 from dateutil.rrule import SU, MO, TU, WE, TH, FR, SA  # noqa F401
 
