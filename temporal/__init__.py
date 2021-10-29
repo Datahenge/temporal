@@ -650,6 +650,16 @@ def date_to_iso_string(any_date):
 		raise Exception(f"Argument 'any_date' should have type 'datetime.date', not '{type(any_date)}'")
 	return any_date.strftime("%Y-%m-%d")
 
+def any_to_iso_string(any_date):
+	"""
+	Given a date, create a String that MariaDB understands for queries (YYYY-MM-DD)
+	"""
+	if isinstance(any_date, datetime.date):
+		return any_date.strftime("%Y-%m-%d")
+	if isinstance(any_date, str):
+		return any_date
+	raise Exception(f"Argument 'any_date' can be a String or datetime.date only (found '{type(any_date)}')")
+
 def get_earliest_date(list_of_dates):
 	if not all(isinstance(x, datetime.date) for x in list_of_dates):
 		raise ValueError("All values in argument must be datetime dates.")
