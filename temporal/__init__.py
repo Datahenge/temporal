@@ -590,7 +590,7 @@ def any_to_date(date_as_unknown):
 			return date_as_unknown
 
 	except dateutil.parser._parser.ParserError:  # pylint: disable=protected-access
-		frappe.throw(frappe._('{} is not a valid date string.')
+		raise ValueError(frappe._('{} is not a valid date string.')
 		             .format(frappe.bold(date_as_unknown)),
 		             title=frappe._('Invalid Date'))
 
@@ -616,10 +616,8 @@ def datestr_to_date(date_as_string):
 		# Explicit is Better than Implicit.  The format should be YYYY-MM-DD.
 		return dateutil.parser.parse(date_as_string, yearfirst=True, dayfirst=False).date()
 		# FYI, another way of doing the above: return datetime.datetime.strptime(date_as_string,"%Y-%m-%d").date()
-	except dateutil.parser._parser.ParserError:  # pylint: disable=protected-access
-		frappe.throw(frappe._('{} is not a valid date string.')
-		             .format(frappe.bold(date_as_string)),
-		             title=frappe._('Invalid Date'))
+	except dateutil.parser._parser.ParserError as ex:  # pylint: disable=protected-access
+		raise ValueError("Value '{date_as_string}' is not a valid date string.") from ex
 
 
 def timestr_to_time(time_as_string):
@@ -637,6 +635,14 @@ def timestr_to_time(time_as_string):
 
 
 def date_to_sql_string(any_date):
+	"""
+	Given a date, create a String that MariaDB understands for queries (YYYY-MM-DD)
+	"""
+	if not isinstance(any_date, datetime.date):
+		raise Exception(f"Argument 'any_date' should have type 'datetime.date', not '{type(any_date)}'")
+	return any_date.strftime("%Y-%m-%d")
+
+def date_to_iso_string(any_date):
 	"""
 	Given a date, create a String that MariaDB understands for queries (YYYY-MM-DD)
 	"""
