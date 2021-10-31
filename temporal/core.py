@@ -6,6 +6,18 @@ import pytz
 import frappe
 
 
+def is_datetime_naive(any_datetime):
+	"""
+	Returns True if the datetime is missing a Time Zone component.
+	"""
+	if not isinstance(any_datetime, datetime):
+		raise TypeError("Argument 'any_datetime' must be a Python datetime object.")
+
+	if any_datetime.tzinfo is None:
+		return True
+	return False
+
+
 def get_system_timezone():
 	"""
 	Returns the Time Zone of the site.
@@ -17,7 +29,9 @@ def get_system_timezone():
 
 
 def get_system_datetime_now():
-	return datetime.now(get_system_timezone())  # Convert to the site's Time Zone:
+	from dateutil.tz import tzutc
+	utc_datetime = datetime.now(tzutc())  # Get the current UTC datetime.
+	return utc_datetime.astimezone( get_system_timezone())  # Convert to the site's Time Zone:
 
 
 def make_datetime_naive(any_datetime):
