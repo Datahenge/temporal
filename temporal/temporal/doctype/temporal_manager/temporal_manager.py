@@ -39,3 +39,9 @@ class TemporalManager(Document):
 		"""
 		# TODO : Button not-yet implemented.  For now you can run the SQL manually.
 		frappe.msgprint("Button not-yet implemented.  For now you can run the SQL manually.")
+
+	@frappe.whitelist()
+	def button_run_crontab_tests(self):
+		from temporal import crontab
+		result = crontab.run_tests()
+		frappe.msgprint(result)

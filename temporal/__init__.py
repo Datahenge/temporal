@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 # Standard Library
 import datetime
 from datetime import timedelta
-from datetime import date as dtdate
+from datetime import date as dtdate, datetime as datetime_type
 
 # Third Party
 # import dateutil
@@ -27,13 +27,6 @@ EPOCH_YEAR = 2020
 END_YEAR = 2050
 MIN_YEAR = 2000
 MAX_YEAR = 2201
-
-class ArgumentMissing(ValidationError):
-	http_status_code = 500
-
-class ArgumentType(ValidationError):
-	http_status_code = 500
-
 
 # Module Typing: https://docs.python.org/3.8/library/typing.html#module-typing
 
@@ -65,32 +58,11 @@ WEEKDAYS_MON0 = (
 	{ 'pos': 5, 'name_short': 'SAT', 'name_long': 'Saturday' },
 	{ 'pos': 6, 'name_short': 'SUN', 'name_long': 'Sunday' })
 
-# WEEKDAYS_SUN = ( 'SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT')
-# WEEKDAYS_SUNDAY = ( 'Sunday', 'Monday', 'Tuedsay', 'Wednesday', 'Thursday', 'Friday', 'Saturday')
-# WEEKDAYS_MON = ( 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN')
+class ArgumentMissing(ValidationError):
+	http_status_code = 500
 
-
-def validate_datatype(argument_name, argument_value, expected_type, mandatory=False):
-	"""
-	A helpful generic function for checking a variable's datatype, and throwing an error on mismatches.
-	Absolutely necessary when dealing with extremely complex Python programs that talk to SQL, HTTP, Redis, etc.
-	"""
-	# Throw error if missing mandatory argument.
-	if mandatory and (not argument_value):
-		raise ArgumentMissing(f"Argument '{argument_name}' is mandatory.")
-
-	if not argument_value:
-		return argument_value  # datatype is going to be a NoneType, which is okay if not mandatory.
-
-	# Check argument type
-	if not isinstance(argument_value, expected_type):
-		msg = f"Argument '{argument_name}' should be of type = '{expected_type.__name__}'"
-		msg += f"<br>Found a {type(argument_value).__name__} with value '{argument_value}' instead."
-		raise ArgumentType(msg)
-
-	# Otherwise, return the argument to the caller.
-	return argument_value
-
+class ArgumentType(ValidationError):
+	http_status_code = 500
 
 class TDate():
 	""" A better datetime.date """
@@ -359,7 +331,6 @@ class Internals():
 	def get_year_from_frappedate(frappe_date):
 		return int(frappe_date[:4])
 
-
 # ----------------
 # Public Functions
 # ----------------
@@ -372,7 +343,6 @@ def date_range(start_date, end_date):
 	for number_of_days in range(int((end_date - start_date).days) + 1):
 		yield start_date + timedelta(number_of_days)
 
-
 def date_range_from_strdates(start_date_str, end_date_str):
 	""" Generator for an inclusive range of date-strings. """
 	if not isinstance(start_date_str, str):
@@ -382,7 +352,6 @@ def date_range_from_strdates(start_date_str, end_date_str):
 	start_date = datestr_to_date(start_date_str)
 	end_date = datestr_to_date(end_date_str)
 	return date_range(start_date, end_date)
-
 
 def date_generator_type_1(start_date, increments_of, earliest_result_date):
 	"""
@@ -399,7 +368,6 @@ def date_generator_type_1(start_date, increments_of, earliest_result_date):
 			next_date = next_date + timedelta(days=increments_of)
 			if next_date >= earliest_result_date:
 				yield next_date
-
 
 def calc_future_dates(epoch_date, multiple_of_days, earliest_result_date, qty_of_result_dates):
 	"""
@@ -428,23 +396,19 @@ def calc_future_dates(epoch_date, multiple_of_days, earliest_result_date, qty_of
 		ret.append(next(this_generator))
 	return ret
 
-
 def date_to_datekey(any_date):
 	if not isinstance(any_date, datetime.date):
 		raise Exception(f"Argument 'any_date' should have type 'datetime.date', not '{type(any_date)}'")
 	date_as_string = any_date.strftime("%Y-%m-%d")
 	return f"temporal/day/{date_as_string}"
 
-
 def get_calendar_years():
 	""" Fetch calendar years from Redis. """
 	return temporal_redis.read_years()
 
-
 def get_calendar_year(year):
 	""" Fetch a Year dictionary from Redis. """
 	return temporal_redis.read_single_year(year)
-
 
 # ----------------
 # Weeks
@@ -554,7 +518,7 @@ def week_generator(from_date, to_date):
 
 
 # ----------------
-# Other
+# OTHER
 # ----------------
 
 def get_date_metadata(any_date):
@@ -570,11 +534,19 @@ def get_date_metadata(any_date):
 
 	return temporal_redis.read_single_day(date_to_datekey(any_date))
 
+def get_earliest_date(list_of_dates):
+	if not all(isinstance(x, datetime.date) for x in list_of_dates):
+		raise ValueError("All values in argument must be datetime dates.")
+	return min(list_of_dates)
 
-def is_invalid_date_string(date_string):
-	# dateutil parser does not agree with dates like "0001-01-01" or "0000-00-00"
-	return (not date_string) or (date_string or "").startswith(("0001-01-01", "0000-00-00"))
+def get_latest_date(list_of_dates):
+	if not all(isinstance(x, datetime.date) for x in list_of_dates):
+		raise ValueError("All values in argument must be datetime dates.")
+	return max(list_of_dates)
 
+# ----------------
+# DATETIME and STRING CONVERSION
+# ----------------
 
 def any_to_date(date_as_unknown):
 	"""
@@ -589,13 +561,22 @@ def any_to_date(date_as_unknown):
 		if isinstance(date_as_unknown, datetime.date):
 			return date_as_unknown
 
-	except dateutil.parser._parser.ParserError:  # pylint: disable=protected-access
+	except dateutil.parser._parser.ParserError as ex:  # pylint: disable=protected-access
 		raise ValueError(frappe._('{} is not a valid date string.')
-		             .format(frappe.bold(date_as_unknown)),
-		             title=frappe._('Invalid Date'))
+		                 .format(frappe.bold(date_as_unknown)),
+		                 title=frappe._('Invalid Date')) from ex
 
 	raise TypeError(f"Unhandled type ({type(date_as_unknown)}) for argument to function any_to_date()")
 
+def any_to_iso_date_string(any_date):
+	"""
+	Given a date, create a String that MariaDB understands for queries (YYYY-MM-DD)
+	"""
+	if isinstance(any_date, datetime.date):
+		return any_date.strftime("%Y-%m-%d")
+	if isinstance(any_date, str):
+		return any_date
+	raise Exception(f"Argument 'any_date' can be a String or datetime.date only (found '{type(any_date)}')")
 
 def datestr_to_date(date_as_string):
 	"""
@@ -609,7 +590,7 @@ def datestr_to_date(date_as_string):
 		return date_as_string
 	if not isinstance(date_as_string, str):
 		raise TypeError(f"Argument 'date_as_string' should be of type String, not '{type(date_as_string)}'")
-	if is_invalid_date_string(date_as_string):
+	if not is_date_string_valid(date_as_string):
 		return None
 
 	try:
@@ -619,6 +600,28 @@ def datestr_to_date(date_as_string):
 	except dateutil.parser._parser.ParserError as ex:  # pylint: disable=protected-access
 		raise ValueError("Value '{date_as_string}' is not a valid date string.") from ex
 
+def date_to_iso_string(any_date):
+	"""
+	Given a date, create an ISO String
+	"""
+	if not isinstance(any_date, datetime.date):
+		raise Exception(f"Argument 'any_date' should have type 'datetime.date', not '{type(any_date)}'")
+	return any_date.strftime("%Y-%m-%d")
+
+def datetime_to_iso_string(any_datetime):
+	"""
+	Given a datetime, create a ISO String
+	"""
+	if not isinstance(any_datetime, datetime_type):
+		raise Exception(f"Argument 'any_date' should have type 'datetime', not '{type(any_datetime)}'")
+
+	return any_datetime.isoformat(sep=' ')  # Note: Frappe not using 'T' as a separator, but a space ''
+
+def is_date_string_valid(date_string):
+	# dateutil parser does not agree with dates like "0001-01-01" or "0000-00-00"
+	if (not date_string) or (date_string or "").startswith(("0001-01-01", "0000-00-00")):
+		return False
+	return True
 
 def timestr_to_time(time_as_string):
 	"""
@@ -633,46 +636,44 @@ def timestr_to_time(time_as_string):
 	"""
 	return time_as_string
 
-
-def date_to_sql_string(any_date):
-	"""
-	Given a date, create a String that MariaDB understands for queries (YYYY-MM-DD)
-	"""
-	if not isinstance(any_date, datetime.date):
-		raise Exception(f"Argument 'any_date' should have type 'datetime.date', not '{type(any_date)}'")
-	return any_date.strftime("%Y-%m-%d")
-
-def date_to_iso_string(any_date):
-	"""
-	Given a date, create a String that MariaDB understands for queries (YYYY-MM-DD)
-	"""
-	if not isinstance(any_date, datetime.date):
-		raise Exception(f"Argument 'any_date' should have type 'datetime.date', not '{type(any_date)}'")
-	return any_date.strftime("%Y-%m-%d")
-
-def any_to_iso_string(any_date):
-	"""
-	Given a date, create a String that MariaDB understands for queries (YYYY-MM-DD)
-	"""
-	if isinstance(any_date, datetime.date):
-		return any_date.strftime("%Y-%m-%d")
-	if isinstance(any_date, str):
-		return any_date
-	raise Exception(f"Argument 'any_date' can be a String or datetime.date only (found '{type(any_date)}')")
-
-def get_earliest_date(list_of_dates):
-	if not all(isinstance(x, datetime.date) for x in list_of_dates):
-		raise ValueError("All values in argument must be datetime dates.")
-	return min(list_of_dates)
-
-def get_latest_date(list_of_dates):
-	if not all(isinstance(x, datetime.date) for x in list_of_dates):
-		raise ValueError("All values in argument must be datetime dates.")
-	return max(list_of_dates)
-
 # ----------------
 # Weekdays
 # ----------------
+
+def next_weekday_after_date(weekday, any_date):
+	weekday_int = None
+	if isinstance(weekday, int):
+		weekday_int = weekday
+	elif isinstance(weekday, str):
+		weekday_int = weekday_int_from_name(weekday, first_day_of_week='MON')  # Monday-based math below
+
+	days_ahead = weekday_int - any_date.weekday()
+	if days_ahead <= 0:  # Target day already happened this week
+		days_ahead += 7
+	return any_date + datetime.timedelta(days_ahead)
+
+
+def validate_datatype(argument_name, argument_value, expected_type, mandatory=False):
+	"""
+	A helpful generic function for checking a variable's datatype, and throwing an error on mismatches.
+	Absolutely necessary when dealing with extremely complex Python programs that talk to SQL, HTTP, Redis, etc.
+	"""
+	# Throw error if missing mandatory argument.
+	if mandatory and (not argument_value):
+		raise ArgumentMissing(f"Argument '{argument_name}' is mandatory.")
+
+	if not argument_value:
+		return argument_value  # datatype is going to be a NoneType, which is okay if not mandatory.
+
+	# Check argument type
+	if not isinstance(argument_value, expected_type):
+		msg = f"Argument '{argument_name}' should be of type = '{expected_type.__name__}'"
+		msg += f"<br>Found a {type(argument_value).__name__} with value '{argument_value}' instead."
+		raise ArgumentType(msg)
+
+	# Otherwise, return the argument to the caller.
+	return argument_value
+
 
 def weekday_string_to_shortname(weekday_string):
 	"""
@@ -697,16 +698,3 @@ def weekday_int_from_name(weekday_name, first_day_of_week='SUN'):
 	else:
 		raise Exception("Invalid first day of week (expected SUN or MON)")
 	return result
-
-
-def next_weekday_after_date(weekday, any_date):
-	weekday_int = None
-	if isinstance(weekday, int):
-		weekday_int = weekday
-	elif isinstance(weekday, str):
-		weekday_int = weekday_int_from_name(weekday, first_day_of_week='MON')  # Monday-based math below
-
-	days_ahead = weekday_int - any_date.weekday()
-	if days_ahead <= 0:  # Target day already happened this week
-		days_ahead += 7
-	return any_date + datetime.timedelta(days_ahead)

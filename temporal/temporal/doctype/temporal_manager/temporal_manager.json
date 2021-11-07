@@ -12,6 +12,8 @@
   "end_year",
   "actions_section",
   "btn_show_weeks",
+  "btn_run_crontab_tests",
+  "cb_1",
   "btn_rebuild_calendar_cache",
   "btn_rebuild_temporal_dates"
  ],
@@ -63,13 +65,23 @@
    "fieldtype": "Button",
    "label": "Rebuild Dates Table",
    "options": "button_rebuild_temporal_dates"
+  },
+  {
+   "fieldname": "cb_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "btn_run_crontab_tests",
+   "fieldtype": "Button",
+   "label": "Run Crontab Tests",
+   "options": "button_run_crontab_tests"
   }
  ],
  "hide_toolbar": 1,
  "in_create": 1,
  "issingle": 1,
  "links": [],
- "modified": "2021-07-04 14:40:55.163315",
+ "modified": "2021-11-07 12:27:25.609808",
  "modified_by": "Administrator",
  "module": "Temporal",
  "name": "Temporal Manager",
