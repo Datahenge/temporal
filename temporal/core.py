@@ -48,4 +48,18 @@ def make_datetime_tz_aware(naive_datetime):
 	"""
 	if naive_datetime.tz_info:
 		raise Exception("Datetime is already localized and time zone aware.")
-	
+
+
+
+def safeset(any_dict, key, value, as_value=False):
+	"""
+	This function is used for setting values on an existing Object, while respecting current keys.
+	"""
+
+	if not hasattr(any_dict, key):
+		raise AttributeError(f"Cannot assign value to unknown attribute '{key}' in dictionary {any_dict}.")
+	if isinstance(value, list) and not as_value:
+		any_dict.__dict__[key] = []
+		any_dict.extend(key, value)
+	else:
+		any_dict.__dict__[key] = value
