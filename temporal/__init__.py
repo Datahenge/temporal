@@ -602,7 +602,7 @@ def datestr_to_date(date_as_string):
 
 def date_to_iso_string(any_date):
 	"""
-	Given a date, create an ISO String
+	Given a date, create an ISO String.  For example, 2021-12-26.
 	"""
 	if not isinstance(any_date, datetime.date):
 		raise Exception(f"Argument 'any_date' should have type 'datetime.date', not '{type(any_date)}'")
@@ -641,6 +641,9 @@ def timestr_to_time(time_as_string):
 # ----------------
 
 def next_weekday_after_date(weekday, any_date):
+	"""
+	Find the next day of week (MON, SUN, etc) after a target date.
+	"""
 	weekday_int = None
 	if isinstance(weekday, int):
 		weekday_int = weekday
