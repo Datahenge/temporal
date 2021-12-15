@@ -68,7 +68,7 @@ class TDate():
 	""" A better datetime.date """
 	def __init__(self, any_date):
 		if not any_date:
-			raise TypeError("Class argument 'any_date' cannot be None.")
+			raise TypeError("TDate() : Class argument 'any_date' cannot be None.")
 		# To prevent a lot of downstream boilerplate, going to "assume" that strings
 		# passed to this class conform to "YYYY-MM-DD" format.
 		if isinstance(any_date, str):
