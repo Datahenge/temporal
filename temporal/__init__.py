@@ -562,9 +562,7 @@ def any_to_date(date_as_unknown):
 			return date_as_unknown
 
 	except dateutil.parser._parser.ParserError as ex:  # pylint: disable=protected-access
-		raise ValueError(frappe._('{} is not a valid date string.')
-		                 .format(frappe.bold(date_as_unknown)),
-		                 title=frappe._('Invalid Date')) from ex
+		raise ValueError(f"'{date_as_unknown}' is not a valid date string.") from ex
 
 	raise TypeError(f"Unhandled type ({type(date_as_unknown)}) for argument to function any_to_date()")
 
