@@ -121,6 +121,8 @@ class TDate():
 	def is_between(self, from_date, to_date):
 		return from_date <= self.date <= to_date
 
+	def week_number(self):
+		return get_week_by_anydate(self.as_date()).week_number
 
 class Week():
 	""" A calendar week, starting on Sunday, where the week containing January 1st is always week #1 """
@@ -442,10 +444,12 @@ def get_week_by_anydate(any_date):
 
 	date_dict = get_date_metadata(any_date)  # fetch from Redis
 	if not date_dict:
-		if frappe.db.get_single_value('Temporal Manager', 'debug_mode'):
-			raise KeyError(f"WARNING: Unable to find Week in Redis for calendar date {any_date}.")
-		return None
-	return get_week_by_weeknum(date_dict['week_year'], date_dict['week_number'])
+		raise KeyError(f"WARNING: Unable to find Week in Temporal Redis for calendar date {any_date}.")
+
+	result_week = get_week_by_weeknum(date_dict['week_year'], date_dict['week_number'])
+	if not result_week:
+		raise Exception(f"Unable to construct a Week() for week_year={date_dict['week_year']}, week_number={date_dict['week_number']}")
+	return result_week
 
 
 def get_weeks_as_dict(year, from_week_num, to_week_num):
