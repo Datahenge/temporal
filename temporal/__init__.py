@@ -136,7 +136,8 @@ class Week():
 
 
 class Builder():
-	""" This class is used to build the temporal data (which we're storing in Redis) """
+	"""
+	This class is used to build the Temporal data (stored in Redis Cache) """
 
 	def __init__(self, epoch_year, end_year, start_of_week='SUN'):
 		""" Initialize the Builder """
@@ -444,7 +445,9 @@ def get_week_by_anydate(any_date):
 
 	date_dict = get_date_metadata(any_date)  # fetch from Redis
 	if not date_dict:
-		raise KeyError(f"WARNING: Unable to find Week in Temporal Redis for calendar date {any_date}.")
+		Builder.build_all()
+		if not date_dict:
+			raise KeyError(f"WARNING: Unable to find Week in Temporal Redis for calendar date {any_date}.")
 
 	result_week = get_week_by_weeknum(date_dict['week_year'], date_dict['week_number'])
 	if not result_week:
@@ -502,7 +505,7 @@ def week_generator(from_date, to_date):
 
 	# Determine which Week Numbers are missing.
 	for year in range(from_week.week_year, to_week.week_year + 1):
-		print(f"Processing week in year {year}")
+		# print(f"Processing week in year {year}")
 		year_dict = temporal_redis.read_single_year(year)
 		# Start Index
 		start_index = 0
