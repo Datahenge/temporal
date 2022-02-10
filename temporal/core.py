@@ -1,10 +1,10 @@
-""" temporal.core """
+""" temporal/core.py """
 
 # No internal dependencies allowed here.
 from datetime import datetime
+from dateutil.tz import tzutc
 import pytz
 import frappe
-
 
 def is_datetime_naive(any_datetime):
 	"""
@@ -29,7 +29,6 @@ def get_system_timezone():
 
 
 def get_system_datetime_now():
-	from dateutil.tz import tzutc
 	utc_datetime = datetime.now(tzutc())  # Get the current UTC datetime.
 	return utc_datetime.astimezone( get_system_timezone())  # Convert to the site's Time Zone:
 

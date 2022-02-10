@@ -79,6 +79,7 @@ def write_years(years_tuple, verbose=False):
 	if verbose:
 		msgprint(f"Temporal Years: {read_years()}")
 
+
 def write_single_year(year_dict, verbose=False):
 	""" Store a year in Redis as a Hash. """
 	if not isinstance(year_dict, dict):
@@ -89,7 +90,7 @@ def write_single_year(year_dict, verbose=False):
 		cache().hset(year_key, key, value)
 	if verbose:
 		print(f"\u2713 Created temporal year '{year_key}' in Redis.")
-		# pprint(read_single_year(year_dict['year']), depth=6)
+
 
 def update_year(year, key, value, verbose=False):
 	""" Update one of the hash values in the Redis Year. """
@@ -148,6 +149,7 @@ def read_years():
 	year_tuple = tuple( int(year) for year in cache().smembers('temporal/years') )
 	return sorted(year_tuple)  # redis does not naturally store Sets as sorted.
 
+
 def read_single_year(year):
 	""" Returns a Python Dictionary containing year-by-year data. """
 	year_key = _year_to_yearkey(year)
@@ -158,10 +160,12 @@ def read_single_year(year):
 		return None
 	return redis_hash_to_dict(redis_hash)
 
+
 def read_days():
 	""" Returns a Python Tuple containing Day Keys. """
 	day_tuple = tuple( day_key for day_key in cache().smembers('temporal/days') )
 	return sorted(day_tuple)  # Redis Sets are not stored in the Redis database.
+
 
 def read_single_day(day_key):
 	""" Returns a Python Dictionary containing a Single Day. """
@@ -174,10 +178,12 @@ def read_single_day(day_key):
 		return None
 	return redis_hash_to_dict(redis_hash)
 
+
 def read_weeks():
 	""" Returns a Python Tuple containing Week Keys. """
 	week_tuple = tuple( week for week in cache().smembers('temporal/weeks') )
 	return sorted(week_tuple)  # redis does not naturally store Sets as sorted.
+
 
 def read_single_week(year, week_number):
 	""" Reads Redis, and returns a Python Dictionary containing a single Week. """

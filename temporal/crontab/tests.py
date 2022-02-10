@@ -1,20 +1,10 @@
 """ run_tests.py """
 
-
 def test1():
-	return "Foo"
+	return "Test1 (TBD)"
 
 
-
-
-
-
-
-
-
-
-
-	
+# pylint: disable=pointless-string-statement
 """
 Test Case #1:
 $ npx local-crontab  '0 10 * * *' --tz America/New_York

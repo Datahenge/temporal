@@ -10,8 +10,6 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 
-import temporal
-
 #
 #  Button Naming Convention:  Python functions start with 'button', while DocField names are 'btn'
 #
@@ -29,7 +27,8 @@ class TemporalManager(Document):
 		    * Start and End Years will default from the DocType 'Temporal Manager'
 			* If no values exist in 'Temporal Manager', there are hard-coded values in temporal.Builder()
 		"""
-		temporal.Builder.build_all()
+		from temporal import Builder
+		Builder.build_all()
 		frappe.msgprint(_("Finished rebuilding Redis Calendar."))
 
 	@frappe.whitelist()
