@@ -557,7 +557,7 @@ def get_latest_date(list_of_dates):
 
 def any_to_date(date_as_unknown):
 	"""
-	Given an argument of unknown Type, try to return a DateTime.
+	Given an argument of unknown Type, try to return a Date.
 	"""
 	try:
 		if not date_as_unknown:
@@ -572,6 +572,23 @@ def any_to_date(date_as_unknown):
 		raise ValueError(f"'{date_as_unknown}' is not a valid date string.") from ex
 
 	raise TypeError(f"Unhandled type ({type(date_as_unknown)}) for argument to function any_to_date()")
+
+def any_to_time(generic_time):
+	"""
+	Given an argument of a generic, unknown Type, try to return a Time.
+	"""
+	try:
+		if not generic_time:
+			return None
+		if isinstance(generic_time, str):
+			return timestr_to_time(generic_time)
+		if isinstance(generic_time, datetime.time):
+			return generic_time
+
+	except dateutil.parser._parser.ParserError as ex:  # pylint: disable=protected-access
+		raise ValueError(f"'{generic_time}' is not a valid Time string.") from ex
+
+	raise TypeError(f"Function argument 'generic_time' in any_to_time() has an unhandled data type: '{type(generic_time)}'")
 
 def any_to_iso_date_string(any_date):
 	"""
@@ -639,7 +656,52 @@ def timestr_to_time(time_as_string):
 		20:30
 		8:30 pm
 	"""
-	return time_as_string
+	time_as_string = time_as_string.lower()
+	time_as_string = time_as_string.replace(':', '')
+	time_as_string = time_as_string.replace(' ', '')
+
+	am_pm = None
+	hour = None
+	minute = None
+
+	if 'am' in time_as_string:
+		am_pm = 'am'
+		time_as_string = time_as_string.replace('am', '')
+	elif 'pm' in time_as_string:
+		am_pm = 'pm'
+		time_as_string = time_as_string.replace('pm', '')
+	time_as_string = time_as_string.replace(' ', '')
+
+	# Based on length of string, make some assumptions:
+	if len(time_as_string) == 0:
+		raise ValueError(f"Invalid time string '{time_as_string}'")
+	elif len(time_as_string) == 1:
+		hour = time_as_string
+		minute = 0
+	elif len(time_as_string) == 2:
+		raise ValueError(f"Invalid time string '{time_as_string}'")
+	elif len(time_as_string) == 3:
+		hour = time_as_string[0]
+		minute = time_as_string[1:3]  # silly Python string splicing; last index is not included.
+	elif len(time_as_string) == 4:
+		hour = time_as_string[0:2]  # silly Python string splicing; last index is not included.
+		minute = time_as_string[2:4] # silly Python string splicing; last index is not included.
+		if int(hour) > 12 and am_pm == 'am':
+			raise ValueError(f"Invalid time string '{time_as_string}'")
+	else:
+		raise ValueError(f"Invalid time string '{time_as_string}'")
+
+	if not am_pm:
+		if int(hour) > 12:
+			am_pm = 'pm'
+		else:
+			am_pm = 'am'
+	if am_pm == 'pm':
+		hour = int(hour) + 12
+
+	ret = datetime.time(int(hour), int(minute), 0)
+	frappe.msgprint(f"{ret}")
+	return ret
 
 # ----------------
 # Weekdays

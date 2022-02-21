@@ -1,8 +1,23 @@
 """ __init__.py for module 'crontab' """
 
-#
+import datetime
+import temporal
+
+
 # Dependencies:
 # `pip install cron-converter`
+
+def datetime_to_cron_string(any_datetime):
+	return f"{any_datetime.minute} {any_datetime.hour} {any_datetime.day} {any_datetime.month} * {any_datetime.year}"
+
+def date_and_time_to_cron_string(any_date, any_time):
+	# Arguments might be strings, or datetime components.  Convert as needed.
+	date_component = temporal.any_to_date(any_date)
+	time_component = temporal.any_to_time(any_time)
+
+	# Combine into a single datetime.
+	my_datetime = datetime.combine(date_component, time_component)
+	return datetime_to_cron_string(my_datetime)
 
 
 def run_tests():
