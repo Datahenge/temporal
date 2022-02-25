@@ -30,6 +30,9 @@ MAX_YEAR = 2201
 
 # Module Typing: https://docs.python.org/3.8/library/typing.html#module-typing
 
+MIN_DATE = dtdate(MIN_YEAR, 1, 1)
+MAX_DATE = dtdate(MAX_YEAR, 12, 31)
+
 WEEKDAYS = (
 	{ 'name_short': 'SUN', 'name_long': 'Sunday' },
 	{ 'name_short': 'MON', 'name_long': 'Monday' },
