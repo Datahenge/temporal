@@ -1,4 +1,4 @@
-""" temporal/temporal/__init__.py """
+""" temporal.py """
 
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
@@ -9,7 +9,6 @@ from datetime import timedelta
 from datetime import date as dtdate, datetime as datetime_type
 
 # Third Party
-# import dateutil
 import dateutil.parser  # https://stackoverflow.com/questions/48632176/python-dateutil-attributeerror-module-dateutil-has-no-attribute-parse
 from dateutil.relativedelta import relativedelta
 from dateutil.rrule import SU, MO, TU, WE, TH, FR, SA  # noqa F401
@@ -22,16 +21,21 @@ from frappe import _, throw, msgprint, ValidationError  # noqa F401
 from temporal import redis as temporal_redis  # alias to distinguish from Third Party module
 
 # Constants
-__version__ = '13.0.0'
-EPOCH_YEAR = 2020
-END_YEAR = 2050
+__version__ = '13.0.1'
+
+# Epoch is the range of 'business active' dates.
+EPOCH_START_YEAR = 2020
+EPOCH_END_YEAR = 2050
+EPOCH_START_DATE = dtdate(EPOCH_START_YEAR, 1, 1)
+EPOCH_END_DATE = dtdate(EPOCH_END_YEAR, 12, 31)
+
+# These should be considered true Min/Max for all other calculations.
 MIN_YEAR = 2000
 MAX_YEAR = 2201
-
-# Module Typing: https://docs.python.org/3.8/library/typing.html#module-typing
-
 MIN_DATE = dtdate(MIN_YEAR, 1, 1)
 MAX_DATE = dtdate(MAX_YEAR, 12, 31)
+
+# Module Typing: https://docs.python.org/3.8/library/typing.html#module-typing
 
 WEEKDAYS = (
 	{ 'name_short': 'SUN', 'name_long': 'Sunday' },
@@ -127,6 +131,7 @@ class TDate():
 	def week_number(self):
 		return get_week_by_anydate(self.as_date()).week_number
 
+
 class Week():
 	""" A calendar week, starting on Sunday, where the week containing January 1st is always week #1 """
 	def __init__(self, week_year, week_number, set_of_days, date_start, date_end):
@@ -158,10 +163,10 @@ class Builder():
 		# Starting and Ending Year
 		if not epoch_year:
 			gui_start_year = int(frappe.db.get_single_value('Temporal Manager', 'start_year') or 0)
-			epoch_year = gui_start_year or EPOCH_YEAR
+			epoch_year = gui_start_year or EPOCH_START_YEAR
 		if not end_year:
 			gui_end_year = int(frappe.db.get_single_value('Temporal Manager', 'end_year') or 0)
-			end_year = gui_end_year or END_YEAR
+			end_year = gui_end_year or EPOCH_END_YEAR
 		if end_year < epoch_year:
 			raise ValueError(f"Ending year {end_year} cannot be smaller than Starting year {epoch_year}")
 		self.epoch_year = epoch_year
@@ -341,10 +346,36 @@ class Internals():
 # Public Functions
 # ----------------
 
-def date_range(start_date, end_date):
-	""" Generator for an inclusive range of dates.
-		It's pretty silly this isn't part of Python Standard Library or datetime
+def date_is_between(any_date, start_date, end_date, use_epochs=True):
 	"""
+	Returns a boolean if a date is between 2 other dates.
+	The interesting part is the epoch date substitution.
+	"""
+	if (not use_epochs) and (not start_date):
+		raise ValueError("Function 'date_is_between' cannot resolve Start Date = None, without 'use_epochs' argument.")
+	if (not use_epochs) and (not end_date):
+		raise ValueError("Function 'date_is_between' cannot resolve End Date = None, without 'use_epochs' argument.")
+
+	if not start_date:
+		start_date = EPOCH_START_DATE
+	if not end_date:
+		end_date = EPOCH_END_DATE
+
+	any_date = any_to_date(any_date)
+	start_date = any_to_date(start_date)
+	end_date = any_to_date(end_date)
+
+	return bool(start_date <= any_date <= end_date)
+
+def date_range(start_date, end_date):
+	"""
+	Generator for an inclusive range of dates.
+	It's very weird this isn't part of Python Standard Library or datetime  :/
+	"""
+
+	# As always, convert ERPNext strings into dates...
+	start_date = any_to_date(start_date)
+	end_date = any_to_date(end_date)
 	# Important to add +1, otherwise the range is -not- inclusive.
 	for number_of_days in range(int((end_date - start_date).days) + 1):
 		yield start_date + timedelta(number_of_days)
