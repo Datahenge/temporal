@@ -18,6 +18,7 @@ import frappe
 from frappe import _, throw, msgprint, ValidationError  # noqa F401
 
 # Temporal
+from temporal import core
 from temporal import redis as temporal_redis  # alias to distinguish from Third Party module
 
 # Constants

@@ -32,19 +32,19 @@
    "type": "Link"
   },
   {
-	"dependencies": "",
-	"hidden": 0,
-	"is_query_report": 0,
-	"label": "Temporal Manager",
-	"link_to": "Temporal Manager",
-	"link_type": "DocType",
-	"onboard": 0,
-	"type": "Link"
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Temporal Manager",
+   "link_to": "Temporal Manager",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
   }
  ],
- "modified": "2021-07-04 00:00:00.000000",
+ "modified": "2022-03-07 19:40:33.112261",
  "modified_by": "Administrator",
- "module": "Temporal",
+ "module": "Temporal Core",
  "name": "Temporal",
  "owner": "Administrator",
  "pin_to_bottom": 0,
@@ -56,9 +56,9 @@
    "type": "DocType"
   },
   {
-	"label": "Temporal Manager",
-	"link_to": "Temporal Manager",
-	"type": "DocType"
-   }
+   "label": "Temporal Manager",
+   "link_to": "Temporal Manager",
+   "type": "DocType"
+  }
  ]
 }

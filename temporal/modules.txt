@@ -1,2 +1,2 @@
-Temporal
 dbsync
+Temporal Core
