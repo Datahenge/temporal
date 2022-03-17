@@ -735,7 +735,7 @@ def timestr_to_time(time_as_string):
 		hour = int(hour) + 12
 
 	ret = datetime.time(int(hour), int(minute), 0)
-	frappe.msgprint(f"{ret}")
+	# frappe.msgprint(f"{ret}")
 	return ret
 
 # ----------------
