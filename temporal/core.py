@@ -2,10 +2,9 @@
 
 # No internal dependencies allowed here.
 from datetime import datetime
-from dateutil.tz import tzutc
-import pytz
-
+from zoneinfo import ZoneInfo
 import frappe
+
 
 def is_datetime_naive(any_datetime):
 	"""
@@ -21,16 +20,16 @@ def is_datetime_naive(any_datetime):
 
 def get_system_timezone():
 	"""
-	Returns the Time Zone of the site.
+	Returns the Time Zone of the Site.
 	"""
 	system_time_zone = frappe.db.get_system_setting('time_zone')
 	if not system_time_zone:
 		raise Exception("Please configure a Time Zone under 'System Settings'.")
-	return pytz.timezone(system_time_zone)
+	return ZoneInfo(system_time_zone)
 
 
 def get_system_datetime_now():
-	utc_datetime = datetime.now(tzutc())  # Get the current UTC datetime.
+	utc_datetime = datetime.now(ZoneInfo("UTC"))  # Get the current UTC datetime.
 	return utc_datetime.astimezone( get_system_timezone())  # Convert to the site's Time Zone:
 
 
@@ -48,7 +47,6 @@ def make_datetime_tz_aware(naive_datetime):
 	"""
 	if naive_datetime.tz_info:
 		raise Exception("Datetime is already localized and time zone aware.")
-
 
 
 def safeset(any_dict, key, value, as_value=False):
