@@ -347,6 +347,28 @@ class Internals():
 # Public Functions
 # ----------------
 
+def localize_datetime(any_datetime, any_timezone):
+	"""
+	Given a naive datetime and time zone, return the localized datetime.
+
+	Necessary because Python is -extremely- confusing when it comes to datetime + timezone.
+	"""
+	if not isinstance(any_datetime, datetime_type):
+		raise TypeError("Argument 'any_datetime' must be a Python datetime object.")
+
+	if any_datetime.tzinfo:
+		raise Exception(f"Datetime value {any_datetime} is already localized and time zone aware (tzinfo={any_datetime.tzinfo})")
+
+	# What kind of time zone object was passed?
+	type_name = type(any_timezone).__name__
+
+	if type_name == 'ZoneInfo':
+		# Only available in Python 3.9+
+		return any_datetime.astimezone(any_timezone)
+
+	return any_timezone.localize(any_datetime)
+
+
 def date_is_between(any_date, start_date, end_date, use_epochs=True):
 	"""
 	Returns a boolean if a date is between 2 other dates.
