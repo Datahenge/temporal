@@ -364,7 +364,8 @@ def localize_datetime(any_datetime, any_timezone):
 
 	if type_name == 'ZoneInfo':
 		# Only available in Python 3.9+
-		return any_datetime.astimezone(any_timezone)
+		# DO NOT USE:  naive_datetime.astimezone(timezone).  This implicitly shifts you the UTC offset.
+		return any_datetime.replace(tzinfo=any_timezone)
 
 	return any_timezone.localize(any_datetime)
 
