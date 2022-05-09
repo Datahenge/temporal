@@ -1,3 +1,8 @@
+---
+toc: true
+---
+
+
 # Temporal
 ## Functions
 
