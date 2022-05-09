@@ -1,9 +1,9 @@
 * TOC
-* [Why I created this App](/why.md)
 {:toc}
 
-
 # Temporal
+[Why I created this App](/why.md)
+
 ## Functions
 
 ### The 'TDate' class
