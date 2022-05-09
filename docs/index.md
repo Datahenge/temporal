@@ -40,8 +40,10 @@ my_tdate.week_number()  # 22
 ```
 
 This helpful class function allows you to see if your TDate falls between 2 other dates:
-```
+
+```python
 from_date = datestr_to_date("01/01/2022")
 to_date = datestr_to_date("12/31/2022")
+
 my_tdate.is_between(from_date, to_date)  # True
 ```
