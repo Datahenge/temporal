@@ -20,7 +20,7 @@ bench --site <your_site_name> install-app temporal
 ```
 
 #### Manual Installation
-If you don't want to use Bench for *downloading* the App:
+If for some reason, don't want to use Bench for *downloading* the App:
 ```
 cd <your_bench_directory>
 source env/bin/activate
