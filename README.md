@@ -2,7 +2,7 @@
 
 An ERPNext [App](https://frappeframework.com/docs/user/en/basics/apps) that integrates with Redis to rapidly provide calendar information.
 
-## Documentation
+### Documentation
 Most of my documentation [can be found here](https://datahenge.github.io/temporal/) using GitHub Pages.
 
 ### What is Temporal?
@@ -12,13 +12,14 @@ Temporal does a few interesting things:
 3. It creates a DocType containing Calendar information.
 
 ### Installation
-Using Bench:
+
+#### Using Bench:
 ```
 bench get-app https://github.com/Datahenge/temporal
 bench --site <your_site_name> install-app temporal
 ```
 
-#### Manual
+#### Manual Installation
 If you don't want to use Bench for installing the app:
 ```
 cd <your_bench_directory>
