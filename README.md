@@ -23,16 +23,16 @@ bench --site <your_site_name> install-app temporal
 If you don't want to use Bench for installing the app:
 ```
 cd <your_bench_directory>
-source env
+source env/bin/activate
 cd apps
 git clone https://github.com/Datahenge/temporal
 cd temporal
 pip install -e .
 deactivate
+
 cd <your_bench_directory>
 bench --site <your_site_name> install-app temporal
 ```
 
 #### License
-
 Lesser GNU Public License version 3.
