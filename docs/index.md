@@ -7,9 +7,9 @@
 ## Functions
 
 ### The 'TDate' class
-TDate() is a wrapper around the standard Python `datetime.date` type.  It's really helpful when you want a type that offers more built-in functions, versus standard dates.
+TDate() is a wrapper around the standard Python `'datetime.date'` type.  It's really helpful when you want a type that offers more built-in functions, versus standard dates.
 
-You can try these examples yourself, using `bench console`
+You can try these examples yourself, using `'bench console'`
 
 **Examples**:
 
