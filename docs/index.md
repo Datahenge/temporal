@@ -7,11 +7,12 @@
 ## Functions
 
 ### The 'TDate' class
-TDate() is a wrapper around the standard Python 'datetime.date' type.  It's really helpful when you want a type that offers more built-in functions, versus standard dates.
+TDate() is a wrapper around the standard Python `datetime.date` type.  It's really helpful when you want a type that offers more built-in functions, versus standard dates.
 
 You can try these examples yourself, using `bench console`
 
-Examples:
+**Examples**:
+
 ```python
 from temporal import datestr_to_date, TDate
 regular_date = datestr_to_date("2022-05-25")  # this is an ordinary Python datetime.date (Wednesday, May 25th 2022)
