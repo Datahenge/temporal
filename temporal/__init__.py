@@ -544,6 +544,9 @@ def week_generator(from_date, to_date):
 	"""
 	Return a Python Generator for all the weeks in a date range.
 	"""
+	from_date = any_to_date(from_date)
+	to_date = any_to_date(to_date)
+
 	if from_date > to_date:
 		raise ValueError("Argument 'from_date' cannot be greater than argument 'to_date'")
 	# If dates are the same, simply return the 1 week.
@@ -785,7 +788,8 @@ def validate_datatype(argument_name, argument_value, expected_type, mandatory=Fa
 	Absolutely necessary when dealing with extremely complex Python programs that talk to SQL, HTTP, Redis, etc.
 	"""
 	# Throw error if missing mandatory argument.
-	if mandatory and (not argument_value):
+	NoneType = type(None)
+	if mandatory and isinstance(argument_value, NoneType):
 		raise ArgumentMissing(f"Argument '{argument_name}' is mandatory.")
 
 	if not argument_value:
