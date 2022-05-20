@@ -2,48 +2,37 @@
 
 An ERPNext [App](https://frappeframework.com/docs/user/en/basics/apps) that integrates with Redis to rapidly provide calendar information.
 
-### Concept
+### Documentation
+Most of my documentation [can be found here](https://datahenge.github.io/temporal/) using GitHub Pages.
 
-The Earth's temporal calendar (years, months, weeks, days) is static information.  We know that May 4th in year 2542 will be a Friday, and will be the 124th day of that year.
-
-ERP systems frequently need date-based information.  How do they do this?
-* Option 1: Call Python functions (such as those in `datetime` library) and write calculations.  But it's inefficient to repeatedly call the same algorithms.  This approach leads to unnecessary coding and wasted CPU activity.
-* Option 2: Generate calendar data once, and store inside the SQL database.  This is better, but leads to frequent SQL calls and queries and disk I/O activity.
-* 
-The purpose of Temporal is to provide another option:
-* Option 3: Load all calendar data into the *Redis Cache* at startup.  Included complex calculations for `Week Number of Year`, `Week Dates`, and more.
-
-By leveraging the power of Redis, ERPNext can rapidly fetch date-based information with minimal CPU and Disk activity.
-
-### Temporal's Concept of Weeks
-
-* Weeks are numbered YYYY-WW  (e.g. 2021-14, 2022-51)
-* Weeks contain 7 complete days, starting with Sunday.
-* Weeks can -never- have fewer than 7 days.
-* Weeks "may" contain calendar days that have different calendar years.
-* However, each Week is "assigned" to 1 Year exclusively.
+### What is Temporal?
+Temporal does a few interesting things:
+1. It is a useful *library* of Python functions.  You can import and leverage these in your own Frappe and ERPNext Apps.
+2. It creates a Redis dataset containing Calendar information.
+3. It creates a DocType containing Calendar information.
 
 ### Installation
-Using Bench:
+
+#### Using Bench:
 ```
 bench get-app https://github.com/Datahenge/temporal
 bench --site <your_site_name> install-app temporal
 ```
 
-#### Manual
-If you don't want to use Bench for installing the app:
+#### Manual Installation
+If for some reason, don't want to use Bench for *downloading* the App:
 ```
 cd <your_bench_directory>
-source env
+source env/bin/activate
 cd apps
 git clone https://github.com/Datahenge/temporal
 cd temporal
 pip install -e .
 deactivate
+
 cd <your_bench_directory>
 bench --site <your_site_name> install-app temporal
 ```
 
 #### License
-
 Lesser GNU Public License version 3.
