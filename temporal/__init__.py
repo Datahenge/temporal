@@ -790,7 +790,8 @@ def validate_datatype(argument_name, argument_value, expected_type, mandatory=Fa
 	Absolutely necessary when dealing with extremely complex Python programs that talk to SQL, HTTP, Redis, etc.
 	"""
 	# Throw error if missing mandatory argument.
-	if mandatory and (not argument_value):
+	NoneType = type(None)
+	if mandatory and isinstance(argument_value, NoneType):
 		raise ArgumentMissing(f"Argument '{argument_name}' is mandatory.")
 
 	if not argument_value:
