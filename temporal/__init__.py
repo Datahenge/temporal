@@ -486,9 +486,11 @@ def get_week_by_weeknum(year, week_number):
 	"""  Returns a class Week. """
 	week_dict = temporal_redis.read_single_week(year, week_number, )
 	if not week_dict:
-		if frappe.db.get_single_value('Temporal Manager', 'debug_mode'):
+		Builder.build_all()
+		if (not week_dict) and frappe.db.get_single_value('Temporal Manager', 'debug_mode'):
 			raise KeyError(f"WARNING: Unable to find Week in Redis for year {year}, week {week_number}.")
 		return None
+
 	return Week(week_dict['year'],
 	            week_dict['week_number'],
 	            week_dict['week_dates'],
