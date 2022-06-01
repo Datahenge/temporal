@@ -504,8 +504,9 @@ def get_week_by_anydate(any_date):
 		raise TypeError("Expected argument 'any_date' to be of type 'datetime.date'")
 
 	date_dict = get_date_metadata(any_date)  # fetch from Redis
-	if not date_dict:
+	if not date_dict:  # try to rebuild without throwing an error
 		Builder.build_all()
+		date_dict = get_date_metadata(any_date)  # 2nd Attempt
 		if not date_dict:
 			raise KeyError(f"WARNING: Unable to find Week in Temporal Redis for calendar date {any_date}.")
 
