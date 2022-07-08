@@ -32,6 +32,8 @@ def get_system_datetime_now():
 	utc_datetime = datetime.now(ZoneInfo("UTC"))  # Get the current UTC datetime.
 	return utc_datetime.astimezone( get_system_timezone())  # Convert to the site's Time Zone:
 
+def get_system_date():
+	return get_system_datetime_now().date()
 
 def make_datetime_naive(any_datetime):
 	"""
