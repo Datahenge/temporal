@@ -2,9 +2,7 @@
 
 # No internal dependencies allowed here.
 from datetime import datetime
-from dateutil.tz import tzutc
-import pytz
-
+from zoneinfo import ZoneInfo
 import frappe
 
 
@@ -36,6 +34,8 @@ def get_system_datetime_now():
 	utc_datetime = datetime.now(tzutc())  # Get the current UTC datetime.
 	return utc_datetime.astimezone( get_system_timezone())  # Convert to the site's Time Zone:
 
+def get_system_date():
+	return get_system_datetime_now().date()
 
 def make_datetime_naive(any_datetime):
 	"""

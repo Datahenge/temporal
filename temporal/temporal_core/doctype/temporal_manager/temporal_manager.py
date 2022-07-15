@@ -36,8 +36,31 @@ class TemporalManager(Document):
 		"""
 			Open the .SQL file in the module, and execute to populate `tabTemporal Dates`
 		"""
-		# TODO : Button not-yet implemented.  For now you can run the SQL manually.
-		frappe.msgprint("Button not-yet implemented.  For now you can run the SQL manually.")
+		import pathlib
+
+		this_path = pathlib.Path(__file__)  # path to this Python module
+		query_path = this_path.parent / 'rebuild_dates_table.sql'
+		if not query_path.exists():
+			raise FileNotFoundError(f"Cannot ready query file '{query_path}'")
+
+		frappe.db.sql("TRUNCATE TABLE `tabTemporal Dates`;")
+		with open(query_path, encoding="utf-8") as fstream:
+			query = fstream.readlines()
+			query = ''.join(query)
+			query = query.replace('@StartDate', "'2021-01-01'")
+			query = query.replace('@CutoffDate', "'2070-12-31'")
+			frappe.db.sql(query)
+
+		query = """SELECT count(*) FROM `tabTemporal Dates`; """
+		row_count = frappe.db.sql(query)
+		if row_count:
+			row_count = row_count[0][0]
+		else:
+			row_count = 0
+
+		frappe.db.commit()
+		frappe.msgprint(f"Table successfully rebuilt and contains {row_count} rows of calendar dates.")
+
 
 	@frappe.whitelist()
 	def button_run_crontab_tests(self):
