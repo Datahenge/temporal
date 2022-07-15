@@ -7,6 +7,7 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "scalar_value",
   "calendar_date",
   "day_name"
  ],
@@ -29,10 +30,20 @@
    "label": "Day Name",
    "read_only": 1,
    "reqd": 1
+  },
+  {
+   "fieldname": "scalar_value",
+   "fieldtype": "Int",
+   "label": "Scalar Value",
+   "non_negative": 1,
+   "read_only": 1,
+   "reqd": 1,
+   "reqd_in_database": 1,
+   "search_index": 1
   }
  ],
  "links": [],
- "modified": "2021-07-07 10:24:11.939888",
+ "modified": "2022-07-13 13:57:56.885380",
  "modified_by": "Administrator",
  "module": "Temporal Core",
  "name": "Temporal Dates",

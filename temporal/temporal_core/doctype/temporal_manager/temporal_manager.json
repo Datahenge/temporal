@@ -21,8 +21,7 @@
   {
    "fieldname": "btn_show_weeks",
    "fieldtype": "Button",
-   "label": "Show Weeks",
-   "options": "button_show_weeks"
+   "label": "Show Weeks"
   },
   {
    "description": "The purpose of this DocType is to provide a type of \"dashboard\" for the Temporal App.",
@@ -81,7 +80,7 @@
  "in_create": 1,
  "issingle": 1,
  "links": [],
- "modified": "2021-11-07 12:27:25.609808",
+ "modified": "2022-07-13 16:12:16.753283",
  "modified_by": "Administrator",
  "module": "Temporal Core",
  "name": "Temporal Manager",

@@ -515,13 +515,15 @@ def get_week_by_anydate(any_date):
 		raise Exception(f"Unable to construct a Week() for week_year={date_dict['week_year']}, week_number={date_dict['week_number']}")
 	return result_week
 
-
+@frappe.whitelist()
 def get_weeks_as_dict(year, from_week_num, to_week_num):
 	""" Given a range of Week numbers, return a List of dictionaries.
 
 		From Shell: bench execute --args "2021,15,20" temporal.get_weeks_as_dict
 
 	"""
+	# Convert JS strings into integers.
+	year = int(year)
 	from_week_num = int(from_week_num)
 	to_week_num = int(to_week_num)
 
@@ -537,6 +539,7 @@ def get_weeks_as_dict(year, from_week_num, to_week_num):
 		week_dict = temporal_redis.read_single_week(year, week_num)
 		if week_dict:
 			weeks_list.append(week_dict)
+
 	return weeks_list
 
 
@@ -833,3 +836,21 @@ def weekday_int_from_name(weekday_name, first_day_of_week='SUN'):
 	else:
 		raise Exception("Invalid first day of week (expected SUN or MON)")
 	return result
+
+
+def date_to_datetime(any_date):
+	"""
+	Return a Date as a Datetime set to midnight.
+	"""
+	return datetime_type.combine(any_date, datetime_type.min.time())
+
+def date_to_scalar(any_date):
+	"""
+	It makes zero difference what particular Integers we use to represent calendar dates, so long as:
+		1. They are consistent throughout multiple calls/calculations.
+		2. There are no gaps between calendar days.
+
+	Given all the calendar dates stored in a Table, a simple identity column would suffice.
+	"""
+	scalar_value = frappe.db.get_value("Temporal Dates", filters={"calendar_date": any_date}, fieldname="scalar_value", cache=True)
+	return scalar_value
