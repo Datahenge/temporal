@@ -1,9 +1,19 @@
 """ temporal/core.py """
 
 # No internal dependencies allowed here.
+import sys
 from datetime import datetime
-from zoneinfo import ZoneInfo
-import frappe
+
+if sys.version_info.minor < 9:
+	import pytz  # https://pypi.org/project/pytz/
+	from dateutil.tz import tzutc
+else:
+	from zoneinfo import ZoneInfo
+
+import frappe  # pylint: disable=wrong-import-position
+
+if sys.version_info.major != 3:
+	raise Exception("Temporal is only available for Python 3.")
 
 
 def is_datetime_naive(any_datetime):
@@ -25,25 +35,27 @@ def get_system_timezone():
 	system_time_zone = frappe.db.get_system_setting('time_zone')
 	if not system_time_zone:
 		raise Exception("Please configure a Time Zone under 'System Settings'.")
-	# This is for Python earlier than 3.9
-	if sys.version_info.major != 3:
-		raise Exception("Temporal is only available for Python 3.")
+
+	# Python 3.8 or less:
 	if sys.version_info.minor < 9:
 		return pytz.timezone(system_time_zone)
-	else:
-		return ZoneInfo(system_time_zone)
+	# Python 3.9 or greater
+	return ZoneInfo(system_time_zone)
 
 
 def get_system_datetime_now():
 	if sys.version_info.minor < 9:
-		# This is for Python earlier than 3.9
+		# Python 3.8 or less:
 		utc_datetime = datetime.now(tzutc())  # Get the current UTC datetime.
 	else:
+		# Python 3.9 or greater
 		utc_datetime = datetime.now(ZoneInfo("UTC"))  # Get the current UTC datetime.
 	return utc_datetime.astimezone( get_system_timezone())  # Convert to the site's Time Zone:
 
+
 def get_system_date():
 	return get_system_datetime_now().date()
+
 
 def make_datetime_naive(any_datetime):
 	"""

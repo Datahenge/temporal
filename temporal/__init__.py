@@ -22,7 +22,7 @@ from temporal import core
 from temporal import redis as temporal_redis  # alias to distinguish from Third Party module
 
 # Constants
-__version__ = '13.0.1'
+__version__ = '13.1.0'
 
 # Epoch is the range of 'business active' dates.
 EPOCH_START_YEAR = 2020
@@ -309,9 +309,9 @@ class Internals():
 
 		if verbose:
 			print("\n----Verbose Details----")
-			print(f"January 1st {jan1.as_date().year} is the {jan1.day_of_week()} day in the week.")
-			print(f"January 1st {jan1_next.as_date().year} is the {jan1_next.day_of_week()} day in the week.")
-			print(f"Day of Week: {any_date.day_of_week()}")
+			print(f"January 1st {jan1.as_date().year} is the {jan1.day_of_week_int()} day in the week.")
+			print(f"January 1st {jan1_next.as_date().year} is the {jan1_next.day_of_week_int()} day in the week.")
+			print(f"Day of Week: {any_date.day_of_week_int()}")
 			print(f"Distance from Jan 1st: {(any_date-jan1).days} days")
 			print(f"Distance from Future Jan 1st: {(jan1_next-any_date).days} days")
 		# SCENARIO 1: January 1st
@@ -362,11 +362,11 @@ def localize_datetime(any_datetime, any_timezone):
 	# What kind of time zone object was passed?
 	type_name = type(any_timezone).__name__
 
+	# WARNING: DO NOT USE:  naive_datetime.astimezone(timezone).  This implicitly shifts you the UTC offset.
 	if type_name == 'ZoneInfo':
 		# Only available in Python 3.9+
-		# DO NOT USE:  naive_datetime.astimezone(timezone).  This implicitly shifts you the UTC offset.
 		return any_datetime.replace(tzinfo=any_timezone)
-
+	# Python 3.8 or earlier
 	return any_timezone.localize(any_datetime)
 
 def date_is_between(any_date, start_date, end_date, use_epochs=True):
@@ -741,17 +741,17 @@ def timestr_to_time(time_as_string):
 	# Based on length of string, make some assumptions:
 	if len(time_as_string) == 0:
 		raise ValueError(f"Invalid time string '{time_as_string}'")
-	elif len(time_as_string) == 1:
+	if len(time_as_string) == 1:
 		hour = time_as_string
 		minute = 0
 	elif len(time_as_string) == 2:
 		raise ValueError(f"Invalid time string '{time_as_string}'")
 	elif len(time_as_string) == 3:
 		hour = time_as_string[0]
-		minute = time_as_string[1:3]  # silly Python string splicing; last index is not included.
+		minute = time_as_string[1:3]  # NOTE: Python string splicing; last index is not included.
 	elif len(time_as_string) == 4:
-		hour = time_as_string[0:2]  # silly Python string splicing; last index is not included.
-		minute = time_as_string[2:4] # silly Python string splicing; last index is not included.
+		hour = time_as_string[0:2]  # NOTE: Python string splicing; last index is not included.
+		minute = time_as_string[2:4] # NOTE: Python string splicing; last index is not included.
 		if int(hour) > 12 and am_pm == 'am':
 			raise ValueError(f"Invalid time string '{time_as_string}'")
 	else:
@@ -765,9 +765,7 @@ def timestr_to_time(time_as_string):
 	if am_pm == 'pm':
 		hour = int(hour) + 12
 
-	ret = datetime.time(int(hour), int(minute), 0)
-	# frappe.msgprint(f"{ret}")
-	return ret
+	return datetime.time(int(hour), int(minute), 0)
 
 # ----------------
 # Weekdays

@@ -1,6 +1,6 @@
 """ __init__.py for module 'crontab' """
 
-import datetime
+from datetime import datetime as datetimeType
 import temporal
 
 
@@ -16,7 +16,7 @@ def date_and_time_to_cron_string(any_date, any_time):
 	time_component = temporal.any_to_time(any_time)
 
 	# Combine into a single datetime.
-	my_datetime = datetime.combine(date_component, time_component)
+	my_datetime = datetimeType.combine(date_component, time_component)
 	return datetime_to_cron_string(my_datetime)
 
 
