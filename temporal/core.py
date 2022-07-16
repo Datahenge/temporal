@@ -26,12 +26,20 @@ def get_system_timezone():
 	if not system_time_zone:
 		raise Exception("Please configure a Time Zone under 'System Settings'.")
 	# This is for Python earlier than 3.9
-	return pytz.timezone(system_time_zone)
+	if sys.version_info.major != 3:
+		raise Exception("Temporal is only available for Python 3.")
+	if sys.version_info.minor < 9:
+		return pytz.timezone(system_time_zone)
+	else:
+		return ZoneInfo(system_time_zone)
 
 
 def get_system_datetime_now():
-	# This is for Python earlier than 3.9
-	utc_datetime = datetime.now(tzutc())  # Get the current UTC datetime.
+	if sys.version_info.minor < 9:
+		# This is for Python earlier than 3.9
+		utc_datetime = datetime.now(tzutc())  # Get the current UTC datetime.
+	else:
+		utc_datetime = datetime.now(ZoneInfo("UTC"))  # Get the current UTC datetime.
 	return utc_datetime.astimezone( get_system_timezone())  # Convert to the site's Time Zone:
 
 def get_system_date():
