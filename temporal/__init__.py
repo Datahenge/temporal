@@ -440,6 +440,11 @@ def calc_future_dates(epoch_date, multiple_of_days, earliest_result_date, qty_of
 		no_earlier_than:      What is earliest result date we want to see?
 		qty_of_result_dates:  How many qualifying dates should this function return?
 	"""
+	if not epoch_date:
+		raise TypeError("Function argument 'epoch_date' is mandatory and cannot be None.")
+	if not earliest_result_date:
+		raise TypeError("Function argument 'earliest_result_date' is mandatory and cannot be None.")
+
 	# Convert to dates, always.
 	epoch_date = any_to_date(epoch_date)
 	earliest_result_date = any_to_date(earliest_result_date)
@@ -448,7 +453,7 @@ def calc_future_dates(epoch_date, multiple_of_days, earliest_result_date, qty_of
 	validate_datatype("qty_of_result_dates", qty_of_result_dates, int)
 
 	if earliest_result_date < epoch_date:
-		raise ValueError("The 'earliest_result_date' cannot precede the 'epoch_date'")
+		raise ValueError(f"Earliest_result_date '{earliest_result_date}' cannot precede the epoch date ({epoch_date})")
 
 	this_generator = date_generator_type_1(epoch_date, multiple_of_days, earliest_result_date)
 	ret = []
