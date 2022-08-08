@@ -130,7 +130,9 @@ class TDate():
 		return from_date <= self.date <= to_date
 
 	def week_number(self):
-		return get_week_by_anydate(self.as_date()).week_number
+		week = get_week_by_anydate(self.as_date())
+		week.print()
+		return week.week_number
 
 
 class Week():
@@ -143,6 +145,16 @@ class Week():
 		self.date_start = date_start
 		self.date_end = date_end
 
+	def list_of_day_strings(self):
+		"""
+		Returns self.days as a List of ISO Date Strings.
+		"""
+		return [ date_to_iso_string(each_date) for each_date in self.days ]
+
+	def print(self):
+		message = f"""Week Number: {self.week_number}\nYear: {self.week_year}\nWeek Number (String): {self.week_number_str}
+Days: {", ".join(self.list_of_day_strings())}\nStart: {self.date_start}\nEnd: {self.date_end}"""
+		print(message)
 
 class Builder():
 	"""
@@ -237,7 +249,7 @@ class Builder():
 			day_dict['year'] = date_foo.year
 			day_dict['day_of_year'] = date_foo.strftime("%j")
 			# Calculate the week number:
-			week_tuple = Internals.date_to_week_tuple(date_foo, verbose=self.debug_mode)
+			week_tuple = Internals.date_to_week_tuple(date_foo, verbose=False)  # previously self.debug_mode
 			day_dict['week_year'] = week_tuple[0]
 			day_dict['week_number'] = week_tuple[1]
 			day_dict['index_in_week'] = int(date_foo.strftime("%w")) + 1  # 1-based indexing
@@ -256,17 +268,22 @@ class Builder():
 		week_start_date = jan1_date - timedelta(days=jan1_day_of_week)  # if January 1st is not Sunday, back up.
 		week_end_date = None
 		week_number = None
+		print(f"Temporal is building weeks, starting with {week_start_date}")
 
 		if self.debug_mode:
 			print(f"Processing weeks begining with calendar date: {week_start_date}")
 
 		count = 0
 		while True:
+			print()
 			# Stop once week_start_date's year exceeds the Maximum Year.
 			if week_start_date.year > self.end_year:
+				if self.debug_mode:
+					print(f"Ending loop on {week_start_date}")
 				break
 
 			week_end_date = week_start_date + timedelta(days=6)
+			print(f"Week's end date = {week_end_date}")
 			if (week_start_date.day == 1) and (week_start_date.month == 1):
 				# Sunday is January 1st, it's a new year.
 				week_number = 1
@@ -276,6 +293,7 @@ class Builder():
 			else:
 				week_number += 1
 			tuple_of_dates = tuple(list(date_range(week_start_date, week_end_date)))
+			print(f"Writing week number {week_number}")
 			week_dict = {}
 			week_dict['year'] = week_end_date.year
 			week_dict['week_number'] = week_number
@@ -284,6 +302,7 @@ class Builder():
 			week_dict['week_dates'] = tuple_of_dates
 			temporal_redis.write_single_week(week_dict)
 			self.week_dicts.append(week_dict)  # internal object in Builder, for use later in build_years
+
 			# Increment to the Next Week
 			week_start_date = week_start_date + timedelta(days=7)
 			count += 1
@@ -440,10 +459,8 @@ def calc_future_dates(epoch_date, multiple_of_days, earliest_result_date, qty_of
 		no_earlier_than:      What is earliest result date we want to see?
 		qty_of_result_dates:  How many qualifying dates should this function return?
 	"""
-	if not epoch_date:
-		raise TypeError("Function argument 'epoch_date' is mandatory and cannot be None.")
-	if not earliest_result_date:
-		raise TypeError("Function argument 'earliest_result_date' is mandatory and cannot be None.")
+	validate_datatype('epoch_date', epoch_date, dtdate, True)
+	validate_datatype('earliest_result_date', earliest_result_date, dtdate, True)
 
 	# Convert to dates, always.
 	epoch_date = any_to_date(epoch_date)
@@ -490,6 +507,7 @@ def get_week_by_weeknum(year, week_number):
 	"""  Returns a class Week. """
 	week_dict = temporal_redis.read_single_week(year, week_number, )
 	if not week_dict:
+		print(f"Warning: No value in Redis for year {year}, week number {week_number}.  Rebuilding...")
 		Builder.build_all()
 		if (not week_dict) and frappe.db.get_single_value('Temporal Manager', 'debug_mode'):
 			raise KeyError(f"WARNING: Unable to find Week in Redis for year {year}, week {week_number}.")
@@ -503,7 +521,9 @@ def get_week_by_weeknum(year, week_number):
 
 
 def get_week_by_anydate(any_date):
-	""" Returns a class Week """
+	"""
+	Given a datetime date, returns a class instance 'Week'
+	"""
 	if not isinstance(any_date, dtdate):
 		raise TypeError("Expected argument 'any_date' to be of type 'datetime.date'")
 
@@ -605,6 +625,7 @@ def get_date_metadata(any_date):
 		bench execute --args "{'2021-04-18'}" temporal.get_date_metadata
 
 	 """
+	# TODO: Failing for January 8th, 2023
 	if isinstance(any_date, str):
 		any_date = datetime.datetime.strptime(any_date, '%Y-%m-%d').date()
 	if not isinstance(any_date, datetime.date):
