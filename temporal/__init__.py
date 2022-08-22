@@ -131,7 +131,7 @@ class TDate():
 
 	def week_number(self):
 		week = get_week_by_anydate(self.as_date())
-		week.print()
+		# week.print()
 		return week.week_number
 
 
@@ -275,7 +275,6 @@ class Builder():
 
 		count = 0
 		while True:
-			print()
 			# Stop once week_start_date's year exceeds the Maximum Year.
 			if week_start_date.year > self.end_year:
 				if self.debug_mode:
@@ -283,7 +282,8 @@ class Builder():
 				break
 
 			week_end_date = week_start_date + timedelta(days=6)
-			print(f"Week's end date = {week_end_date}")
+			if self.debug_mode:
+				print(f"Week's end date = {week_end_date}")
 			if (week_start_date.day == 1) and (week_start_date.month == 1):
 				# Sunday is January 1st, it's a new year.
 				week_number = 1
@@ -293,7 +293,8 @@ class Builder():
 			else:
 				week_number += 1
 			tuple_of_dates = tuple(list(date_range(week_start_date, week_end_date)))
-			print(f"Writing week number {week_number}")
+			if self.debug_mode:
+				print(f"Writing week number {week_number}")
 			week_dict = {}
 			week_dict['year'] = week_end_date.year
 			week_dict['week_number'] = week_number
