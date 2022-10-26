@@ -57,6 +57,13 @@ def get_system_date():
 	return get_system_datetime_now().date()
 
 
+def datetime_to_sql_datetime(any_datetime: datetime):
+	"""
+	Convert a Python DateTime into a DateTime that can be written to MariaDB/MySQL.
+	"""
+	return any_datetime.strftime('%Y-%m-%d %H:%M:%S')
+
+
 def make_datetime_naive(any_datetime):
 	"""
 	Takes a timezone-aware datetime, and makes it naive.
