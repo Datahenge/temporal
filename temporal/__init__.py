@@ -656,8 +656,7 @@ def any_to_date(date_as_unknown):
 		if not date_as_unknown:
 			return None
 		if isinstance(date_as_unknown, str):
-			return dateutil.parser.parse(date_as_unknown).date()
-			# Alternately: return datetime.datetime.strptime(date_as_string,"%Y-%m-%d").date()
+			return datetime.datetime.strptime(date_as_unknown,"%Y-%m-%d").date()
 		if isinstance(date_as_unknown, datetime.date):
 			return date_as_unknown
 
@@ -710,8 +709,14 @@ def datestr_to_date(date_as_string):
 
 	try:
 		# Explicit is Better than Implicit.  The format should be YYYY-MM-DD.
-		return dateutil.parser.parse(date_as_string, yearfirst=True, dayfirst=False).date()
-		# FYI, another way of doing the above: return datetime.datetime.strptime(date_as_string,"%Y-%m-%d").date()
+
+		# The function below is completely asinine.
+		# If you pass a day of week string (e.g. "Friday"), it returns the next Friday in the calendar.  Instead of an error.
+		# return dateutil.parser.parse(date_as_string, yearfirst=True, dayfirst=False).date()
+
+		# So I'm now using this instead.
+		return datetime.datetime.strptime(date_as_string,"%Y-%m-%d").date()
+
 	except dateutil.parser._parser.ParserError as ex:  # pylint: disable=protected-access
 		raise ValueError("Value '{date_as_string}' is not a valid date string.") from ex
 
