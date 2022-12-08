@@ -823,6 +823,8 @@ def validate_datatype(argument_name, argument_value, expected_type, mandatory=Fa
 	"""
 	A helpful generic function for checking a variable's datatype, and throwing an error on mismatches.
 	Absolutely necessary when dealing with extremely complex Python programs that talk to SQL, HTTP, Redis, etc.
+
+	NOTE: expected_type can be a single Type, or a tuple of Types.
 	"""
 	# Throw error if missing mandatory argument.
 	NoneType = type(None)
@@ -834,8 +836,13 @@ def validate_datatype(argument_name, argument_value, expected_type, mandatory=Fa
 
 	# Check argument type
 	if not isinstance(argument_value, expected_type):
-		msg = f"Argument '{argument_name}' should be of type = '{expected_type.__name__}'"
-		msg += f"<br>Found a {type(argument_value).__name__} with value '{argument_value}' instead."
+		if isinstance(expected_type, tuple):
+			expected_type_names = [ each.__name__ for each in expected_type ]
+			msg = f"Argument '{argument_name}' should be one of these types: '{', '.join(expected_type_names)}'"
+			msg += f"<br>Found a {type(argument_value).__name__} with value '{argument_value}' instead."
+		else:
+			msg = f"Argument '{argument_name}' should be of type = '{expected_type.__name__}'"
+			msg += f"<br>Found a {type(argument_value).__name__} with value '{argument_value}' instead."
 		raise ArgumentType(msg)
 
 	# Otherwise, return the argument to the caller.
