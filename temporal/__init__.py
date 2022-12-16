@@ -682,6 +682,24 @@ def any_to_time(generic_time):
 
 	raise TypeError(f"Function argument 'generic_time' in any_to_time() has an unhandled data type: '{type(generic_time)}'")
 
+def any_to_datetime(datetime_as_unknown):
+	"""
+	Given an argument of unknown Type, try to return a DateTime.
+	"""
+	datetime_string_format = "%Y-%m-%d %H:%M:%S"
+	try:
+		if not datetime_as_unknown:
+			return None
+		if isinstance(datetime_as_unknown, str):
+			return datetime.datetime.strptime(datetime_as_unknown, datetime_string_format)
+		if isinstance(datetime_as_unknown, datetime.datetime):
+			return datetime_as_unknown
+
+	except dateutil.parser._parser.ParserError as ex:  # pylint: disable=protected-access
+		raise ValueError(f"'{datetime_as_unknown}' is not a valid datetime string.") from ex
+
+	raise TypeError(f"Unhandled type ({type(datetime_as_unknown)}) for argument to function any_to_datetime()")
+
 def any_to_iso_date_string(any_date):
 	"""
 	Given a date, create a String that MariaDB understands for queries (YYYY-MM-DD)
