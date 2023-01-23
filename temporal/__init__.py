@@ -108,11 +108,17 @@ class TDate():
 	def day_of_month(self):
 		return self.date.day
 
+	def day_of_month_ordinal(self):
+		return make_ordinal(self.day_of_month())
+
 	def day_of_year(self):
 		return int(self.date.strftime("%j"))  # e.g. April 1st is the 109th day in year 2020.
 
 	def month_of_year(self):
 		return self.date.month
+
+	def month_of_year_longname(self):
+		return self.date.strftime("%B")
 
 	def year(self):
 		return self.date.year
@@ -908,3 +914,20 @@ def date_to_scalar(any_date):
 	"""
 	scalar_value = frappe.db.get_value("Temporal Dates", filters={"calendar_date": any_date}, fieldname="scalar_value", cache=True)
 	return scalar_value
+
+
+def make_ordinal(some_integer) -> str:
+	"""
+	Convert an integer into its ordinal representation::
+		make_ordinal(0)   => '0th'
+		make_ordinal(3)   => '3rd'
+		make_ordinal(122) => '122nd'
+		make_ordinal(213) => '213th'
+	"""
+	# Shamelessly borrowed from here: https://stackoverflow.com/questions/9647202/ordinal-numbers-replacement
+	some_integer = int(some_integer)
+	if 11 <= (some_integer % 100) <= 13:
+		suffix = 'th'
+	else:
+		suffix = ['th', 'st', 'nd', 'rd', 'th'][min(some_integer % 10, 4)]
+	return str(some_integer) + suffix
