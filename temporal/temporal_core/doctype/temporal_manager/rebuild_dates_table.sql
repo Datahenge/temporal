@@ -6,7 +6,8 @@ INSERT INTO `tabTemporal Dates`
 (name, creation, modified, modified_by, owner, docstatus, parent, parentfield, parenttype, idx, 
  `_user_tags`, `_comments`, `_assign`, `_liked_by`, calendar_date, day_name, scalar_value)
 
- WITH RECURSIVE DateSequence(calendar_date) AS 
+
+WITH RECURSIVE DateSequence(calendar_date) AS 
 (
   SELECT @StartDate	AS calendar_date
   
@@ -14,8 +15,9 @@ INSERT INTO `tabTemporal Dates`
 
   SELECT DATE_ADD(calendar_date, INTERVAL 1 DAY)
   FROM DateSequence
-  WHERE DATEDIFF(calendar_date, @CutoffDate) < 0 
+  WHERE DATEDIFF(calendar_date, @EndDate) < 0 
 )
+
 
 SELECT
 	LPAD(

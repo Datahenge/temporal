@@ -94,7 +94,9 @@ class TDate():
 		return self.date - other.date
 
 	def day_of_week_int(self, zero_based=False):
-		""" Return an integer representing Day of Week (beginning with Sunday) """
+		"""
+		Return an integer representing Day of Week (beginning with Sunday)
+		"""
 		if zero_based:
 			return self.date.toordinal() % 7  # Sunday being the 0th day of week
 		return (self.date.toordinal() % 7) + 1  # Sunday being the 1st day of week
@@ -121,6 +123,9 @@ class TDate():
 		return self.date.strftime("%B")
 
 	def year(self):
+		"""
+		Integer representing the calendar date's year.
+		"""
 		return self.date.year
 
 	def as_date(self):
@@ -136,10 +141,14 @@ class TDate():
 		return from_date <= self.date <= to_date
 
 	def week_number(self):
+		"""
+		This function leverages the Redis cache to find the week number.
+		"""
 		week = get_week_by_anydate(self.as_date())
-		# week.print()
 		return week.week_number
 
+	def as_iso_string(self):
+		return date_to_iso_string(self.date)
 
 class Week():
 	""" A calendar week, starting on Sunday, where the week containing January 1st is always week #1 """
@@ -323,23 +332,28 @@ class Internals():
 	""" Internal functions that should not be called outside of Temporal. """
 	@staticmethod
 	def date_to_week_tuple(any_date, verbose=False):
-		""" Given a date, return the corresponding week number.
-			This uses a special calculation, that prevents "partial weeks"
+		"""
+		Given a calendar date, return the corresponding week number.
+		This uses a special calculation, that prevents "partial weeks"
 		"""
 		if not isinstance(any_date, datetime.date):
 			raise TypeError("Argument must be of type 'datetime.date'")
 
 		any_date = TDate(any_date)  # recast as a Temporal TDate
+		this_year = any_date.year()
+		next_year = this_year + 1
+
 		jan1 = any_date.jan1()
 		jan1_next = any_date.jan1_next_year()
 
 		if verbose:
 			print("\n----Verbose Details----")
-			print(f"January 1st {jan1.as_date().year} is the {jan1.day_of_week_int()} day in the week.")
-			print(f"January 1st {jan1_next.as_date().year} is the {jan1_next.day_of_week_int()} day in the week.")
-			print(f"Day of Week: {any_date.day_of_week_int()}")
-			print(f"Distance from Jan 1st: {(any_date-jan1).days} days")
-			print(f"Distance from Future Jan 1st: {(jan1_next-any_date).days} days")
+			print(f"January 1st {this_year} is the {make_ordinal(jan1.day_of_week_int())} day in the week.")
+			print(f"January 1st {next_year} is the {make_ordinal(jan1_next.day_of_week_int())} day in the week.")
+			print(f"Day of Week: {any_date.day_of_week_longname()} (value of {any_date.day_of_week_int()} with 1-based indexing)")
+			print(f"{any_date.as_iso_string()} Distance from Jan 1st {this_year}: {(any_date-jan1).days} days")
+			print(f"{any_date.as_iso_string()} Distance from Jan 1st {next_year}: {(jan1_next-any_date).days} days")
+
 		# SCENARIO 1: January 1st
 		if (any_date.day_of_month() == 1) and (any_date.month_of_year() == 1):
 			return (any_date.year(), 1)
@@ -347,9 +361,9 @@ class Internals():
 		if  ( any_date.day_of_week_int() > jan1.day_of_week_int() ) and \
 			( (any_date - jan1).days in range(1, 7)):
 			if verbose:
-				print("Scenario 2A; target date part of Week 1.")
+				print("Scenario 2A; calendar date is part of Week 1.")
 			return (any_date.year(), 1)
-		# SCENARIO 2B: Week 1, before NEXT January 1st
+		# SCENARIO 2B: Week 1, before NEXT YEAR'S January 1st
 		if  ( any_date.day_of_week_int() < jan1_next.day_of_week_int() ) and \
 			( (jan1_next - any_date).days in range(1, 7)):
 			if verbose:
@@ -357,12 +371,22 @@ class Internals():
 			return (any_date.year() + 1, 1)
 		# SCENARIO 3:  Find the first Sunday, then modulus 7.
 		if verbose:
-			print("Scenario 3: Target date is not nearby to January 1st.")
-		first_sunday = TDate(jan1.as_date() + relativedelta(weekday=SU))
-		first_sunday_pos = first_sunday.day_of_year()
+			print(f"Scenario 3: Target date is not in same Calendar Week as January 1st {this_year}/{next_year}")
+
+		first_sundays_date = TDate(jan1.as_date() + relativedelta(weekday=SU))
+		first_sundays_day_of_year = first_sundays_date.day_of_year()
+		if first_sundays_day_of_year == 1:
+			first_full_week = 1
+		else:
+			first_full_week = 2
+		if verbose:
+			print(f"Year's first Sunday is {first_sundays_date.as_iso_string()}, with day of year = {first_sundays_day_of_year}")
+			print(f"First full week = {first_full_week}")
+
 		# Formula: (( Date's Position in Year - Position of First Sunday) / 7 ) + 2
 		# Why the +2 at the end?  Because +1 for modulus, and +1 because we're offset against Week #2
-		week_number = int((any_date.day_of_year() - first_sunday_pos) / 7 ) + 2
+		delta = int(any_date.day_of_year() - first_sundays_day_of_year)
+		week_number = int(delta / 7 ) + first_full_week
 		return (jan1.year(), week_number)
 
 	@staticmethod
@@ -543,7 +567,7 @@ def get_week_by_anydate(any_date):
 
 	result_week = get_week_by_weeknum(date_dict['week_year'], date_dict['week_number'])
 	if not result_week:
-		raise Exception(f"Unable to construct a Week() for week_year={date_dict['week_year']}, week_number={date_dict['week_number']}")
+		raise Exception(f"Unable to construct a Week() for calendar date {any_date} (week_year={date_dict['week_year']}, week_number={date_dict['week_number']})")
 	return result_week
 
 @frappe.whitelist()
@@ -632,7 +656,6 @@ def get_date_metadata(any_date):
 		bench execute --args "{'2021-04-18'}" temporal.get_date_metadata
 
 	 """
-	# TODO: Failing for January 8th, 2023
 	if isinstance(any_date, str):
 		any_date = datetime.datetime.strptime(any_date, '%Y-%m-%d').date()
 	if not isinstance(any_date, datetime.date):

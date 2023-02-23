@@ -7,7 +7,7 @@ from temporal import TDate
 
 class TemporalDates(Document):
 
-	def set_week_number(self):
+	def set_week_number(self, raise_on_exception=False):
 		"""
 		Set the week number for this Calendar Date.
 		"""
@@ -15,8 +15,9 @@ class TemporalDates(Document):
 			this_week_number = TDate(self.calendar_date).week_number()
 			self.week_number = this_week_number
 		except Exception as ex:
+			if raise_on_exception:
+				raise ex
 			print(ex)
-			return
 
 def populate_week_numbers():
 	"""

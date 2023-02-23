@@ -25,6 +25,8 @@ class TestTemporal(unittest.TestCase):
 	def tearDown(self):
 		frappe.set_user("Administrator")
 
+	# All functions must begin with 'test'
+
 	def test_weekday_name(self):
 		this_date = date(2021, 4, 17)  # April 17th is a Saturday
 		retval = temporal.get_date_metadata(this_date)['weekday_name']
@@ -35,20 +37,41 @@ class TestTemporal(unittest.TestCase):
 		retval = temporal.get_date_metadata(this_date)['index_in_week']
 		self.assertTrue(retval == 7)
 
-	def test_weeknum_from_date(self):
-		this_date = date(2021, 4, 30)  # April 30th 2021 should be week number 18.
+	def test_date_to_weeknums(self):
+		expected = [
+			{ "calendar_date": "2020-01-01", "week_number": 1 },
+			{ "calendar_date": "2020-01-04", "week_number": 1 },
+			{ "calendar_date": "2020-01-05", "week_number": 2 },
+			{ "calendar_date": "2020-01-11", "week_number": 2 },
+			{ "calendar_date": "2020-01-12", "week_number": 3 },
+			{ "calendar_date": "2021-01-01", "week_number": 1 },
+			{ "calendar_date": "2021-01-02", "week_number": 1 },
+			{ "calendar_date": "2021-01-03", "week_number": 2 },
+			{ "calendar_date": "2021-01-09", "week_number": 2 },
+			{ "calendar_date": "2021-01-10", "week_number": 3 },
+			{ "calendar_date": "2021-01-16", "week_number": 3 },
+			{ "calendar_date": "2021-04-30", "week_number": 18 },
+			{ "calendar_date": "2022-01-01", "week_number": 1 },
+			{ "calendar_date": "2022-01-02", "week_number": 2 },
+			{ "calendar_date": "2022-01-08", "week_number": 2 },
+			{ "calendar_date": "2022-01-09", "week_number": 3 },
+			{ "calendar_date": "2022-01-15", "week_number": 3 },
+			{ "calendar_date": "2023-01-01", "week_number": 1 },
+			{ "calendar_date": "2023-01-07", "week_number": 1 },
+			{ "calendar_date": "2023-01-08", "week_number": 2 },
+			{ "calendar_date": "2023-01-14", "week_number": 2 },
+			{ "calendar_date": "2023-01-15", "week_number": 3 },
+		]
 
-		# Test the algorithm used by Internals
-		retval = temporal.Internals.date_to_week_tuple(this_date)
-		try:
-			self.assertTrue(retval[1] == 18)
-		except AssertionError as ex:
-			print(f"Expected week number 18; found week number {retval} instead.")
-			raise ex
-
-		# Test what Redis has stored in its database.
-		retval = temporal.get_date_metadata(this_date)['week_number']
-		self.assertTrue(retval == 18)
+		for each in expected:
+			calendar_date = temporal.any_to_date(each['calendar_date'])
+			calculated_value = temporal.Internals.date_to_week_tuple(calendar_date)[1]
+			try:
+				self.assertEqual(each['week_number'], calculated_value)
+			except AssertionError as ex:
+				print(f"Date: {calendar_date}, Expected: {each['week_number']}, Calculated: {calculated_value}")
+				calculated_value = temporal.Internals.date_to_week_tuple(calendar_date, verbose=True)[1]
+				raise ex
 
 	def test_future_dates_calculator(self):
 		# Test a 7 day iteration.
@@ -85,8 +108,10 @@ def custom_test_one(year):
 		print(f"Day {each_date}, Week Year {week_tuple[0]}, Week Number {week_tuple[1]}")
 
 def custom_test_two(any_date_str):
-	""" Simple test for printing Dates and Weeks to console.
-		bench execute --args "{'2020-12-25'}" temporal.test_temporal.custom_test_two
+	""" 
+	Simple test for printing Dates and Weeks to console.
+
+	CLI:	bench execute --args "{'2020-12-25'}" temporal.test_temporal.custom_test_two
 	"""
 	any_date = temporal.datestr_to_date(any_date_str)
 	week_tuple = temporal.Internals.date_to_week_tuple(any_date, True)

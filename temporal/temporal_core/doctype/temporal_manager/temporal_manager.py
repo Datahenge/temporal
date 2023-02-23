@@ -1,10 +1,13 @@
 """ Code for DocType 'Temporal Manager' """
 
 # -*- coding: utf-8 -*-
-# Copyright (c) 2022, Datahenge LLC and contributors
+# Copyright (c) 2023, Datahenge LLC and contributors
 # For license information, please see license.txt
 
 from __future__ import unicode_literals
+
+import datetime
+import pathlib
 
 import frappe
 from frappe import _
@@ -36,7 +39,7 @@ class TemporalManager(Document):
 		"""
 			Open the .SQL file in the module, and execute to populate `tabTemporal Dates`
 		"""
-		import pathlib
+		print("Rebuilding the Temporal Dates table...")
 
 		this_path = pathlib.Path(__file__)  # path to this Python module
 		query_path = this_path.parent / 'rebuild_dates_table.sql'
@@ -44,11 +47,15 @@ class TemporalManager(Document):
 			raise FileNotFoundError(f"Cannot ready query file '{query_path}'")
 
 		frappe.db.sql("TRUNCATE TABLE `tabTemporal Dates`;")
+
+		start_date = datetime.date(int(frappe.db.get_single_value("Temporal Manager", "start_year")), 1, 1)  # January 1st of starting year.
+		end_date = datetime.date(int(frappe.db.get_single_value("Temporal Manager", "end_year")), 12, 31)  # December 31st of ending year.
+
 		with open(query_path, encoding="utf-8") as fstream:
 			query = fstream.readlines()
 			query = ''.join(query)
-			query = query.replace('@StartDate', "'2021-01-01'")
-			query = query.replace('@CutoffDate', "'2070-12-31'")
+			query = query.replace('@StartDate', f"'{start_date}'")
+			query = query.replace('@EndDate', f"'{end_date}'")
 			frappe.db.sql(query)
 
 		query = """SELECT count(*) FROM `tabTemporal Dates`; """
@@ -57,8 +64,23 @@ class TemporalManager(Document):
 			row_count = row_count[0][0]
 		else:
 			row_count = 0
-
 		frappe.db.commit()
+
+		frappe.msgprint("Calculating calendar week numbers...", to_console=True)
+		# Next, need to assign Week Numbers.
+		temporal_date_keys = frappe.get_list("Temporal Dates", pluck="name", order_by="calendar_date")
+		for index, each_key in enumerate(temporal_date_keys):
+			try:
+				if index % 100 == 0:
+					print(f"    Iteration: {index} ...")
+				doc_temporal_date = frappe.get_doc("Temporal Dates", each_key)
+				doc_temporal_date.set_week_number(raise_on_exception=True)
+				doc_temporal_date.save()
+				frappe.db.commit()
+			except Exception as ex:
+				frappe.db.rollback()
+				raise ex
+
 		frappe.msgprint(f"Table successfully rebuilt and contains {row_count} rows of calendar dates.")
 
 
