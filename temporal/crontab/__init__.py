@@ -4,6 +4,9 @@ from datetime import datetime as datetimeType
 import temporal
 
 
+# TODO: Eventually this needs to migrate into the non-Frappe specific Temporal app I've created on GitLab
+# However, that's going to require renaming *this* Temporal to frappe-temporal, and fixing all client environments.
+
 # Dependencies:
 # `pip install cron-converter`
 
