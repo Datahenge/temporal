@@ -9,9 +9,6 @@ days.
 Luckily, this is not necessary.  Future calendar dates are fixed datapoints; they aren't going to change.  I
 can just permanently store them.  So I created a new DocType `tabTemporal Dates`
 
-
-
-
 ## Testing
 ### Testing Redis
 I highly recommend downloading [Another Redis Desktop Manager](https://www.electronjs.org/apps/anotherredisdesktopmanager)
@@ -25,13 +22,6 @@ If you already know your Redis command, you can `cat` and pipes too:
 ```
 $  echo 'SMEMBERS v12testdb|temporal/calyears' | redis-cli -p 13003
 ```
-
-### Testing Temporal
-We can use Frappe's Unit Test framework to run some tests, and verify our mathematics are okay.
-
-To run these tests:
-1. `bench --site <sitename> set-config allow_tests true`
-2. ` bench run-tests --module "temporal.temporal.test_temporal"`
 
 ### MySQL Keywords and Reserved Words
 https://dev.mysql.com/doc/refman/8.0/en/keywords.html#keywords-8-0-detailed-D
@@ -103,7 +93,6 @@ S    M    T    W    T    F    S
 from dateutil.parser import parse
 now = parse("Sat Oct 11 17:13:46 UTC 2003")
 ```
-
 
 ### Redis Articles
 * https://redis.io/topics/data-types

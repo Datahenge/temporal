@@ -13,6 +13,23 @@ import dateutil.parser  # https://stackoverflow.com/questions/48632176/python-da
 from dateutil.relativedelta import relativedelta
 from dateutil.rrule import SU, MO, TU, WE, TH, FR, SA  # noqa F401
 
+# Temporal Lib
+import temporal_lib
+
+from temporal_lib import int_to_ordinal_string as make_ordinal
+from temporal_lib.core import (
+	localize_datetime,
+	date_is_between, date_range,
+	date_range_from_strdates, calc_future_dates
+)
+from temporal_lib.tlib_date import TDate, date_to_week_tuple
+from temporal_lib.tlib_week import Week
+from temporal_lib.tlib_weekday import (
+	WEEKDAYS_SUN0, WEEKDAYS_MON0,
+	weekday_string_to_shortname,
+	weekday_int_from_name
+)
+
 # Frappe modules.
 import frappe
 from frappe import _, throw, msgprint, ValidationError  # noqa F401
@@ -22,7 +39,7 @@ from temporal import core
 from temporal import redis as temporal_redis  # alias to distinguish from Third Party module
 
 # Constants
-__version__ = '13.1.0'
+__version__ = '13.2.0'
 
 # Epoch is the range of 'business active' dates.
 EPOCH_START_YEAR = 2020
@@ -38,145 +55,21 @@ MAX_DATE = dtdate(MAX_YEAR, 12, 31)
 
 # Module Typing: https://docs.python.org/3.8/library/typing.html#module-typing
 
-WEEKDAYS = (
-	{ 'name_short': 'SUN', 'name_long': 'Sunday' },
-	{ 'name_short': 'MON', 'name_long': 'Monday' },
-	{ 'name_short': 'TUE', 'name_long': 'Tuesday' },
-	{ 'name_short': 'WED', 'name_long': 'Wednesday' },
-	{ 'name_short': 'THU', 'name_long': 'Thursday' },
-	{ 'name_short': 'FRI', 'name_long': 'Friday' },
-	{ 'name_short': 'SAT', 'name_long': 'Saturday' },
-)
-
-WEEKDAYS_SUN0 = (
-	{ 'pos': 0, 'name_short': 'SUN', 'name_long': 'Sunday' },
-	{ 'pos': 1, 'name_short': 'MON', 'name_long': 'Monday' },
-	{ 'pos': 2, 'name_short': 'TUE', 'name_long': 'Tuesday' },
-	{ 'pos': 3, 'name_short': 'WED', 'name_long': 'Wednesday' },
-	{ 'pos': 4, 'name_short': 'THU', 'name_long': 'Thursday' },
-	{ 'pos': 5, 'name_short': 'FRI', 'name_long': 'Friday' },
-	{ 'pos': 6, 'name_short': 'SAT', 'name_long': 'Saturday' })
-
-WEEKDAYS_MON0 = (
-	{ 'pos': 0, 'name_short': 'MON', 'name_long': 'Monday' },
-	{ 'pos': 1, 'name_short': 'TUE', 'name_long': 'Tuesday' },
-	{ 'pos': 2, 'name_short': 'WED', 'name_long': 'Wednesday' },
-	{ 'pos': 3, 'name_short': 'THU', 'name_long': 'Thursday' },
-	{ 'pos': 4, 'name_short': 'FRI', 'name_long': 'Friday' },
-	{ 'pos': 5, 'name_short': 'SAT', 'name_long': 'Saturday' },
-	{ 'pos': 6, 'name_short': 'SUN', 'name_long': 'Sunday' })
-
 class ArgumentMissing(ValidationError):
 	http_status_code = 500
 
 class ArgumentType(ValidationError):
 	http_status_code = 500
 
-class TDate():
-	""" A better datetime.date """
-	def __init__(self, any_date):
-		if not any_date:
-			raise TypeError("TDate() : Class argument 'any_date' cannot be None.")
-		# To prevent a lot of downstream boilerplate, going to "assume" that strings
-		# passed to this class conform to "YYYY-MM-DD" format.
-		if isinstance(any_date, str):
-			any_date = datestr_to_date(any_date)
-		if not isinstance(any_date, datetime.date):
-			raise TypeError("Class argument 'any_date' must be a Python date.")
-		self.date = any_date
-
-	def __add__(self, other):
-		# operator overload:  adding two TDates
-		return self.date + other.date
-
-	def __sub__(self, other):
-		# operator overload: subtracting two TDates
-		return self.date - other.date
-
-	def day_of_week_int(self, zero_based=False):
-		"""
-		Return an integer representing Day of Week (beginning with Sunday)
-		"""
-		if zero_based:
-			return self.date.toordinal() % 7  # Sunday being the 0th day of week
-		return (self.date.toordinal() % 7) + 1  # Sunday being the 1st day of week
-
-	def day_of_week_shortname(self):
-		return WEEKDAYS_SUN0[self.day_of_week_int() - 1]['name_short']
-
-	def day_of_week_longname(self):
-		return WEEKDAYS_SUN0[self.day_of_week_int() - 1]['name_long']
-
-	def day_of_month(self):
-		return self.date.day
-
-	def day_of_month_ordinal(self):
-		return make_ordinal(self.day_of_month())
-
-	def day_of_year(self):
-		return int(self.date.strftime("%j"))  # e.g. April 1st is the 109th day in year 2020.
-
-	def month_of_year(self):
-		return self.date.month
-
-	def month_of_year_longname(self):
-		return self.date.strftime("%B")
-
-	def year(self):
-		"""
-		Integer representing the calendar date's year.
-		"""
-		return self.date.year
-
-	def as_date(self):
-		return self.date
-
-	def jan1(self):
-		return TDate(dtdate(year=self.date.year, month=1, day=1))
-
-	def jan1_next_year(self):
-		return TDate(dtdate(year=self.date.year + 1, month=1, day=1))
-
-	def is_between(self, from_date, to_date):
-		return from_date <= self.date <= to_date
-
-	def week_number(self):
-		"""
-		This function leverages the Redis cache to find the week number.
-		"""
-		week = get_week_by_anydate(self.as_date())
-		return week.week_number
-
-	def as_iso_string(self):
-		return date_to_iso_string(self.date)
-
-class Week():
-	""" A calendar week, starting on Sunday, where the week containing January 1st is always week #1 """
-	def __init__(self, week_year, week_number, set_of_days, date_start, date_end):
-		self.week_year = week_year
-		self.week_number = week_number
-		self.week_number_str = str(self.week_number).zfill(2)
-		self.days = set_of_days
-		self.date_start = date_start
-		self.date_end = date_end
-
-	def list_of_day_strings(self):
-		"""
-		Returns self.days as a List of ISO Date Strings.
-		"""
-		return [ date_to_iso_string(each_date) for each_date in self.days ]
-
-	def print(self):
-		message = f"""Week Number: {self.week_number}\nYear: {self.week_year}\nWeek Number (String): {self.week_number_str}
-Days: {", ".join(self.list_of_day_strings())}\nStart: {self.date_start}\nEnd: {self.date_end}"""
-		print(message)
 
 class Builder():
 	"""
 	This class is used to build the Temporal data (stored in Redis Cache) """
 
 	def __init__(self, epoch_year, end_year, start_of_week='SUN'):
-		""" Initialize the Builder """
+		"""
+		Initialize the Builder class.
+		"""
 
 		# This determines if we output additional Error Messages.
 		self.debug_mode = frappe.db.get_single_value('Temporal Manager', 'debug_mode')
@@ -186,7 +79,7 @@ class Builder():
 		if start_of_week not in ('SUN', 'MON'):
 			raise ValueError(f"Argument 'start of week' must be either 'SUN' or 'MON' (value passed was '{start_of_week}'")
 		if start_of_week != 'SUN':
-			raise Exception("Temporal is not-yet coded to handle weeks that begin with Monday.")
+			raise NotImplementedError("Temporal is not-yet coded to handle weeks that begin with Monday.")
 
 		# Starting and Ending Year
 		if not epoch_year:
@@ -328,140 +221,9 @@ class Builder():
 			print(f"\u2713 Created {count} Temporal Week keys in Redis.")
 
 
-class Internals():
-	""" Internal functions that should not be called outside of Temporal. """
-	@staticmethod
-	def date_to_week_tuple(any_date, verbose=False):
-		"""
-		Given a calendar date, return the corresponding week number.
-		This uses a special calculation, that prevents "partial weeks"
-		"""
-		if not isinstance(any_date, datetime.date):
-			raise TypeError("Argument must be of type 'datetime.date'")
+def get_year_from_frappedate(frappe_date):
+	return int(frappe_date[:4])
 
-		any_date = TDate(any_date)  # recast as a Temporal TDate
-		this_year = any_date.year()
-		next_year = this_year + 1
-
-		jan1 = any_date.jan1()
-		jan1_next = any_date.jan1_next_year()
-
-		if verbose:
-			print("\n----Verbose Details----")
-			print(f"January 1st {this_year} is the {make_ordinal(jan1.day_of_week_int())} day in the week.")
-			print(f"January 1st {next_year} is the {make_ordinal(jan1_next.day_of_week_int())} day in the week.")
-			print(f"Day of Week: {any_date.day_of_week_longname()} (value of {any_date.day_of_week_int()} with 1-based indexing)")
-			print(f"{any_date.as_iso_string()} Distance from Jan 1st {this_year}: {(any_date-jan1).days} days")
-			print(f"{any_date.as_iso_string()} Distance from Jan 1st {next_year}: {(jan1_next-any_date).days} days")
-
-		# SCENARIO 1: January 1st
-		if (any_date.day_of_month() == 1) and (any_date.month_of_year() == 1):
-			return (any_date.year(), 1)
-		# SCENARIO 2A: Week 1, after January 1st
-		if  ( any_date.day_of_week_int() > jan1.day_of_week_int() ) and \
-			( (any_date - jan1).days in range(1, 7)):
-			if verbose:
-				print("Scenario 2A; calendar date is part of Week 1.")
-			return (any_date.year(), 1)
-		# SCENARIO 2B: Week 1, before NEXT YEAR'S January 1st
-		if  ( any_date.day_of_week_int() < jan1_next.day_of_week_int() ) and \
-			( (jan1_next - any_date).days in range(1, 7)):
-			if verbose:
-				print("Scenario 2B; target date near beginning of Future Week 1.")
-			return (any_date.year() + 1, 1)
-		# SCENARIO 3:  Find the first Sunday, then modulus 7.
-		if verbose:
-			print(f"Scenario 3: Target date is not in same Calendar Week as January 1st {this_year}/{next_year}")
-
-		first_sundays_date = TDate(jan1.as_date() + relativedelta(weekday=SU))
-		first_sundays_day_of_year = first_sundays_date.day_of_year()
-		if first_sundays_day_of_year == 1:
-			first_full_week = 1
-		else:
-			first_full_week = 2
-		if verbose:
-			print(f"Year's first Sunday is {first_sundays_date.as_iso_string()}, with day of year = {first_sundays_day_of_year}")
-			print(f"First full week = {first_full_week}")
-
-		# Formula: (( Date's Position in Year - Position of First Sunday) / 7 ) + 2
-		# Why the +2 at the end?  Because +1 for modulus, and +1 because we're offset against Week #2
-		delta = int(any_date.day_of_year() - first_sundays_day_of_year)
-		week_number = int(delta / 7 ) + first_full_week
-		return (jan1.year(), week_number)
-
-	@staticmethod
-	def get_year_from_frappedate(frappe_date):
-		return int(frappe_date[:4])
-
-# ----------------
-# Public Functions
-# ----------------
-
-def localize_datetime(any_datetime, any_timezone):
-	"""
-	Given a naive datetime and time zone, return the localized datetime.
-
-	Necessary because Python is -extremely- confusing when it comes to datetime + timezone.
-	"""
-	if not isinstance(any_datetime, datetime_type):
-		raise TypeError("Argument 'any_datetime' must be a Python datetime object.")
-
-	if any_datetime.tzinfo:
-		raise Exception(f"Datetime value {any_datetime} is already localized and time zone aware (tzinfo={any_datetime.tzinfo})")
-
-	# What kind of time zone object was passed?
-	type_name = type(any_timezone).__name__
-
-	# WARNING: DO NOT USE:  naive_datetime.astimezone(timezone).  This implicitly shifts you the UTC offset.
-	if type_name == 'ZoneInfo':
-		# Only available in Python 3.9+
-		return any_datetime.replace(tzinfo=any_timezone)
-	# Python 3.8 or earlier
-	return any_timezone.localize(any_datetime)
-
-def date_is_between(any_date, start_date, end_date, use_epochs=True):
-	"""
-	Returns a boolean if a date is between 2 other dates.
-	The interesting part is the epoch date substitution.
-	"""
-	if (not use_epochs) and (not start_date):
-		raise ValueError("Function 'date_is_between' cannot resolve Start Date = None, without 'use_epochs' argument.")
-	if (not use_epochs) and (not end_date):
-		raise ValueError("Function 'date_is_between' cannot resolve End Date = None, without 'use_epochs' argument.")
-
-	if not start_date:
-		start_date = EPOCH_START_DATE
-	if not end_date:
-		end_date = EPOCH_END_DATE
-
-	any_date = any_to_date(any_date)
-	start_date = any_to_date(start_date)
-	end_date = any_to_date(end_date)
-
-	return bool(start_date <= any_date <= end_date)
-
-def date_range(start_date, end_date):
-	"""
-	Generator for an inclusive range of dates.
-	It's very weird this isn't part of Python Standard Library or datetime  :/
-	"""
-
-	# As always, convert ERPNext strings into dates...
-	start_date = any_to_date(start_date)
-	end_date = any_to_date(end_date)
-	# Important to add +1, otherwise the range is -not- inclusive.
-	for number_of_days in range(int((end_date - start_date).days) + 1):
-		yield start_date + timedelta(number_of_days)
-
-def date_range_from_strdates(start_date_str, end_date_str):
-	""" Generator for an inclusive range of date-strings. """
-	if not isinstance(start_date_str, str):
-		raise TypeError("Argument 'start_date_str' must be a Python string.")
-	if not isinstance(end_date_str, str):
-		raise TypeError("Argument 'end_date_str' must be a Python string.")
-	start_date = datestr_to_date(start_date_str)
-	end_date = datestr_to_date(end_date_str)
-	return date_range(start_date, end_date)
 
 def date_generator_type_1(start_date, increments_of, earliest_result_date):
 	"""
@@ -479,48 +241,23 @@ def date_generator_type_1(start_date, increments_of, earliest_result_date):
 			if next_date >= earliest_result_date:
 				yield next_date
 
-def calc_future_dates(epoch_date, multiple_of_days, earliest_result_date, qty_of_result_dates):
-	"""
-		Purpose: Predict future dates, based on an epoch date and multiple.
-		Returns: A List of Dates
-
-		Arguments
-		epoch_date:           The date from which the calculation begins.
-		multiple_of_days:     In every iteration, how many days do we move forward?
-		no_earlier_than:      What is earliest result date we want to see?
-		qty_of_result_dates:  How many qualifying dates should this function return?
-	"""
-	validate_datatype('epoch_date', epoch_date, dtdate, True)
-	validate_datatype('earliest_result_date', earliest_result_date, dtdate, True)
-
-	# Convert to dates, always.
-	epoch_date = any_to_date(epoch_date)
-	earliest_result_date = any_to_date(earliest_result_date)
-	# Validate the remaining data types.
-	validate_datatype("multiple_of_days", multiple_of_days, int)
-	validate_datatype("qty_of_result_dates", qty_of_result_dates, int)
-
-	if earliest_result_date < epoch_date:
-		raise ValueError(f"Earliest_result_date '{earliest_result_date}' cannot precede the epoch date ({epoch_date})")
-
-	this_generator = date_generator_type_1(epoch_date, multiple_of_days, earliest_result_date)
-	ret = []
-	for _ in range(qty_of_result_dates):  # underscore because we don't actually need the index.
-		ret.append(next(this_generator))
-	return ret
 
 def date_to_datekey(any_date):
 	if not isinstance(any_date, datetime.date):
-		raise Exception(f"Argument 'any_date' should have type 'datetime.date', not '{type(any_date)}'")
+		raise TypeError(f"Argument 'any_date' should have type 'datetime.date', not '{type(any_date)}'")
 	date_as_string = any_date.strftime("%Y-%m-%d")
 	return f"temporal/day/{date_as_string}"
+
 
 def get_calendar_years():
 	""" Fetch calendar years from Redis. """
 	return temporal_redis.read_years()
 
+
 def get_calendar_year(year):
-	""" Fetch a Year dictionary from Redis. """
+	""" 
+	Fetch a Year dictionary from Redis.
+	"""
 	return temporal_redis.read_single_year(year)
 
 # ----------------
@@ -535,8 +272,11 @@ def week_to_weekkey(year, week_number):
 
 
 def get_week_by_weeknum(year, week_number):
-	"""  Returns a class Week. """
+	"""
+	Returns a class Week.
+	"""
 	week_dict = temporal_redis.read_single_week(year, week_number, )
+
 	if not week_dict:
 		print(f"Warning: No value in Redis for year {year}, week number {week_number}.  Rebuilding...")
 		Builder.build_all()
@@ -544,31 +284,14 @@ def get_week_by_weeknum(year, week_number):
 			raise KeyError(f"WARNING: Unable to find Week in Redis for year {year}, week {week_number}.")
 		return None
 
-	return Week(week_dict['year'],
-	            week_dict['week_number'],
-	            week_dict['week_dates'],
-	            week_dict['week_start'],
-	            week_dict['week_end'])
+	return Week((year, week_number))
 
 
 def get_week_by_anydate(any_date):
 	"""
 	Given a datetime date, returns a class instance 'Week'
 	"""
-	if not isinstance(any_date, dtdate):
-		raise TypeError("Expected argument 'any_date' to be of type 'datetime.date'")
-
-	date_dict = get_date_metadata(any_date)  # fetch from Redis
-	if not date_dict:  # try to rebuild without throwing an error
-		Builder.build_all()
-		date_dict = get_date_metadata(any_date)  # 2nd Attempt
-		if not date_dict:
-			raise KeyError(f"WARNING: Unable to find Week in Temporal Redis for calendar date {any_date}.")
-
-	result_week = get_week_by_weeknum(date_dict['week_year'], date_dict['week_number'])
-	if not result_week:
-		raise Exception(f"Unable to construct a Week() for calendar date {any_date} (week_year={date_dict['week_year']}, week_number={date_dict['week_number']})")
-	return result_week
+	return Week.date_to_week(any_date)
 
 @frappe.whitelist()
 def get_weeks_as_dict(year, from_week_num, to_week_num):
@@ -659,7 +382,7 @@ def get_date_metadata(any_date):
 	if isinstance(any_date, str):
 		any_date = datetime.datetime.strptime(any_date, '%Y-%m-%d').date()
 	if not isinstance(any_date, datetime.date):
-		raise Exception(f"Argument 'any_date' should have type 'datetime.date', not '{type(any_date)}'")
+		raise TypeError(f"Argument 'any_date' should have type 'datetime.date', not '{type(any_date)}'")
 
 	return temporal_redis.read_single_day(date_to_datekey(any_date))
 
@@ -895,32 +618,6 @@ def validate_datatype(argument_name, argument_value, expected_type, mandatory=Fa
 	# Otherwise, return the argument to the caller.
 	return argument_value
 
-
-def weekday_string_to_shortname(weekday_string):
-	"""
-	Given a weekday name (MON, Monday, MONDAY), convert it to the short name.
-	"""
-	if weekday_string.upper() in (day['name_short'] for day in WEEKDAYS):
-		return weekday_string.upper()
-
-	ret = next(day['name_short'] for day in WEEKDAYS if day['name_long'].upper() == weekday_string.upper())
-	return ret
-
-
-def weekday_int_from_name(weekday_name, first_day_of_week='SUN'):
-	"""
-	Return the position of a Weekday in a Week.
-	"""
-	weekday_short_name = weekday_string_to_shortname(weekday_name)
-	if first_day_of_week == 'SUN':
-		result = next(weekday['pos'] for weekday in WEEKDAYS_SUN0 if weekday['name_short'] == weekday_short_name)
-	elif first_day_of_week == 'MON':
-		result = next(weekday['pos'] for weekday in WEEKDAYS_MON0 if weekday['name_short'] == weekday_short_name)
-	else:
-		raise Exception("Invalid first day of week (expected SUN or MON)")
-	return result
-
-
 def date_to_datetime(any_date):
 	"""
 	Return a Date as a Datetime set to midnight.
@@ -937,20 +634,3 @@ def date_to_scalar(any_date):
 	"""
 	scalar_value = frappe.db.get_value("Temporal Dates", filters={"calendar_date": any_date}, fieldname="scalar_value", cache=True)
 	return scalar_value
-
-
-def make_ordinal(some_integer) -> str:
-	"""
-	Convert an integer into its ordinal representation::
-		make_ordinal(0)   => '0th'
-		make_ordinal(3)   => '3rd'
-		make_ordinal(122) => '122nd'
-		make_ordinal(213) => '213th'
-	"""
-	# Shamelessly borrowed from here: https://stackoverflow.com/questions/9647202/ordinal-numbers-replacement
-	some_integer = int(some_integer)
-	if 11 <= (some_integer % 100) <= 13:
-		suffix = 'th'
-	else:
-		suffix = ['th', 'st', 'nd', 'rd', 'th'][min(some_integer % 10, 4)]
-	return str(some_integer) + suffix

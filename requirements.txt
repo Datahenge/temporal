@@ -1,2 +1,2 @@
 # Not yet; this would require refactoring time I don't have right now
-# temporal-lib~=0.0.1
+temporal-lib>=0.0.4

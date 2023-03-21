@@ -7,7 +7,7 @@ Most of my documentation [can be found here](https://datahenge.github.io/tempora
 
 ### What is Temporal?
 Temporal does a few interesting things:
-1. It is a useful *library* of Python functions.  You can import and leverage these in your own Frappe and ERPNext Apps.
+1. Integrates a useful *library* of Python functions from its sibling app, [temporal-lib](https://pypi.org/project/temporal-lib/), bringing these functions into Frappe and ERPNext Apps.
 2. It creates a Redis dataset containing Calendar information.
 3. It creates a DocType containing Calendar information.
 
