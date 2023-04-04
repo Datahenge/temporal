@@ -178,7 +178,7 @@ class Builder():
 	def __init__(self, epoch_year, end_year, start_of_week='SUN'):
 		""" Initialize the Builder """
 
-		# This determines if we output additional Error Messages.
+		# This determines if we output additional error messages.
 		self.debug_mode = frappe.db.get_single_value('Temporal Manager', 'debug_mode')
 
 		if not isinstance(start_of_week, str):
@@ -186,7 +186,7 @@ class Builder():
 		if start_of_week not in ('SUN', 'MON'):
 			raise ValueError(f"Argument 'start of week' must be either 'SUN' or 'MON' (value passed was '{start_of_week}'")
 		if start_of_week != 'SUN':
-			raise Exception("Temporal is not-yet coded to handle weeks that begin with Monday.")
+			raise ValueError("Temporal is not-yet coded to handle weeks that begin with Monday.")
 
 		# Starting and Ending Year
 		if not epoch_year:
