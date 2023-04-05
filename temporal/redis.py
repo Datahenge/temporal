@@ -125,15 +125,19 @@ def write_single_week(week_dict, verbose=False):
 		pprint(read_single_week(week_dict['year'], week_dict['week_number']), depth=6)
 
 def write_single_day(day_dict):
-	""" Store a Day in Redis as a hash. """
+	""" 
+	Store a Day in Redis as a hash.
+	"""
 	if not isinstance(day_dict, dict):
 		raise TypeError("Argument 'day_dict' should be a Python Dictionary.")
+
+	frappe.whatis(day_dict)
 
 	hash_key = _date_to_daykey(day_dict['date'])
 	cache().delete_key(hash_key)
 
 	date_as_string = day_dict['date'].strftime("%Y-%m-%d")
-	for key,value in day_dict.items():
+	for key, value in day_dict.items():
 		if key == 'date':
 			# No point storing datetime.date; just store a sortable date string: YYYY-MM-DD
 			cache().hset(hash_key, key, date_as_string)
@@ -145,13 +149,17 @@ def write_single_day(day_dict):
 # ------------
 
 def read_years():
-	""" Returns a Python Tuple containing year integers. """
+	"""
+	Returns a Python Tuple containing year integers.
+	"""
 	year_tuple = tuple( int(year) for year in cache().smembers('temporal/years') )
 	return sorted(year_tuple)  # redis does not naturally store Sets as sorted.
 
 
 def read_single_year(year):
-	""" Returns a Python Dictionary containing year-by-year data. """
+	""" 
+	Returns a Python Dictionary containing year-by-year data.
+	"""
 	year_key = _year_to_yearkey(year)
 	redis_hash =  cache().hgetall(year_key)
 	if not redis_hash:

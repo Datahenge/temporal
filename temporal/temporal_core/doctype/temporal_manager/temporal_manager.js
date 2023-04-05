@@ -20,8 +20,8 @@ function dialog_show_redis_weeks() {
 		fields: [
 			{
 				'fieldtype': 'Int',
-				'label': __('Year'),
-				'fieldname': 'year',
+				'label': __('From Week Year'),
+				'fieldname': 'from_year',
 				'default': moment(new Date()).year()
 			},
 			{
@@ -29,6 +29,12 @@ function dialog_show_redis_weeks() {
 				'label': __('From Week Number'),
 				'fieldname': 'from_week_num',
 				'default': 1
+			},
+			{
+				'fieldtype': 'Int',
+				'label': __('To Week Year'),
+				'fieldname': 'to_year',
+				'default': moment(new Date()).year()
 			},
 			{
 				'fieldtype': 'Int',
@@ -43,13 +49,15 @@ function dialog_show_redis_weeks() {
 		let foo = frappe.call({
 			method: 'temporal.get_weeks_as_dict',
 			// Arguments must precisely match the Python function declaration.
-			args: { year: args.year, from_week_num: args.from_week_num, to_week_num: args.to_week_num },
+			args: { from_year: args.from_year,
+				    from_week_num: args.from_week_num,
+				    to_year: args.to_year,
+					to_week_num: args.to_week_num 
+			},
 			callback: function(r) {
 				if (r.message) {
 					let message_object = JSON.parse(r.message);
-					//message_object.forEach(function (item, index) {
-					//  console.log(item, index);
-					// });
+					frappe.msgprint(message_object);
 				}
 			}
 		});

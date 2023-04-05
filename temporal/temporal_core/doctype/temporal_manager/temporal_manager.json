@@ -6,14 +6,13 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "section_break_1",
+  "heading_1",
   "debug_mode",
   "start_year",
   "end_year",
-  "actions_section",
-  "btn_show_weeks",
-  "btn_run_crontab_tests",
   "cb_1",
+  "heading_2",
+  "btn_show_weeks",
   "btn_rebuild_calendar_cache",
   "btn_rebuild_temporal_dates"
  ],
@@ -22,12 +21,6 @@
    "fieldname": "btn_show_weeks",
    "fieldtype": "Button",
    "label": "Show Weeks"
-  },
-  {
-   "description": "The purpose of this DocType is to provide a type of \"dashboard\" for the Temporal App.",
-   "fieldname": "section_break_1",
-   "fieldtype": "Section Break",
-   "label": "Temporal Manager"
   },
   {
    "fieldname": "btn_rebuild_calendar_cache",
@@ -54,11 +47,6 @@
    "label": "Debug Mode"
   },
   {
-   "fieldname": "actions_section",
-   "fieldtype": "Section Break",
-   "label": "Actions"
-  },
-  {
    "description": "Repopulate the SQL table `tabTemporal Dates`",
    "fieldname": "btn_rebuild_temporal_dates",
    "fieldtype": "Button",
@@ -70,17 +58,22 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "btn_run_crontab_tests",
-   "fieldtype": "Button",
-   "label": "Run Crontab Tests",
-   "options": "button_run_crontab_tests"
+   "description": "The purpose of this DocType is to provide a type of \"dashboard\" for the Temporal App.",
+   "fieldname": "heading_1",
+   "fieldtype": "Heading",
+   "label": "Temporal Manager"
+  },
+  {
+   "fieldname": "heading_2",
+   "fieldtype": "Heading",
+   "label": "Actions"
   }
  ],
  "hide_toolbar": 1,
  "in_create": 1,
  "issingle": 1,
  "links": [],
- "modified": "2022-07-13 16:12:16.753283",
+ "modified": "2023-04-05 02:09:29.917711",
  "modified_by": "Administrator",
  "module": "Temporal Core",
  "name": "Temporal Manager",

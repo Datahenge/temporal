@@ -3,10 +3,8 @@ indent-string="\t"
 disable=
     missing-function-docstring,
     broad-except,
-	bad-continuation,
 	import-outside-toplevel,
 	line-too-long,
-	no-self-use,
 	too-few-public-methods,
 	too-many-arguments
 

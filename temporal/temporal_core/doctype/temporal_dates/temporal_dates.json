@@ -9,8 +9,8 @@
  "field_order": [
   "scalar_value",
   "calendar_date",
-  "day_name",
-  "week_number"
+  "week_number",
+  "day_name"
  ],
  "fields": [
   {
@@ -45,11 +45,15 @@
   {
    "fieldname": "week_number",
    "fieldtype": "Int",
-   "label": "Week Number"
+   "in_list_view": 1,
+   "label": "Week Number",
+   "non_negative": 1,
+   "read_only": 1,
+   "search_index": 1
   }
  ],
  "links": [],
- "modified": "2022-08-01 13:12:20.662084",
+ "modified": "2023-04-05 02:06:29.132039",
  "modified_by": "Administrator",
  "module": "Temporal Core",
  "name": "Temporal Dates",

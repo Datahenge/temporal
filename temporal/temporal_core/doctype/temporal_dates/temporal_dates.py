@@ -1,9 +1,10 @@
-# Copyright (c) 2022, Datahenge LLC and contributors
+# Copyright (c) 2023, Datahenge LLC and contributors
 # For license information, please see license.txt
 
 import frappe
 from frappe.model.document import Document
-from temporal import TDate
+
+from temporal import date_to_week_tuple
 
 class TemporalDates(Document):
 
@@ -12,8 +13,7 @@ class TemporalDates(Document):
 		Set the week number for this Calendar Date.
 		"""
 		try:
-			this_week_number = TDate(self.calendar_date).week_number()
-			self.week_number = this_week_number
+			self.week_number = date_to_week_tuple(self.calendar_date)[1]  # pylint: disable=attribute-defined-outside-init, no-member
 		except Exception as ex:
 			if raise_on_exception:
 				raise ex
