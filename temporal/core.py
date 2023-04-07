@@ -9,8 +9,8 @@ import sys
 import temporal_lib
 from temporal_lib.core import (
 	is_datetime_naive,
+	localize_datetime,
 	make_datetime_naive,
-	make_datetime_tz_aware,
 	TimeZone
 )
 from temporal_lib.tlib_date import (
@@ -57,3 +57,10 @@ def safeset(any_dict, key, value, as_value=False):
 		any_dict.extend(key, value)
 	else:
 		any_dict.__dict__[key] = value
+
+
+def make_datetime_tz_aware(naive_datetime):
+	"""
+	Given a naive datetime, localize to the ERPNext system timezone.
+	"""
+	return localize_datetime(naive_datetime, get_system_timezone())
