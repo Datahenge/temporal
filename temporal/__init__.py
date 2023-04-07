@@ -820,29 +820,32 @@ def timestr_to_time(time_as_string):
 	# Based on length of string, make some assumptions:
 	if len(time_as_string) == 0:
 		raise ValueError(f"Invalid time string '{time_as_string}'")
-	if len(time_as_string) == 1:
-		hour = time_as_string
+	if len(time_as_string) in (1,2):
+		hour = int(time_as_string)
 		minute = 0
-	elif len(time_as_string) == 2:
-		raise ValueError(f"Invalid time string '{time_as_string}'")
 	elif len(time_as_string) == 3:
-		hour = time_as_string[0]
-		minute = time_as_string[1:3]  # NOTE: Python string splicing; last index is not included.
+		hour = int(time_as_string[0])
+		minute = int(time_as_string[1:3])  # NOTE: Python string splicing; last index is not included.
 	elif len(time_as_string) == 4:
-		hour = time_as_string[0:2]  # NOTE: Python string splicing; last index is not included.
-		minute = time_as_string[2:4] # NOTE: Python string splicing; last index is not included.
-		if int(hour) > 12 and am_pm == 'am':
-			raise ValueError(f"Invalid time string '{time_as_string}'")
+		hour = int(time_as_string[0:2])  # NOTE: Python string splicing; last index is not included.
+		minute = int(time_as_string[2:4]) # NOTE: Python string splicing; last index is not included.
 	else:
 		raise ValueError(f"Invalid time string '{time_as_string}'")
 
+	if hour > 23:
+		raise ValueError(f"Invalid time string '{time_as_string}'")
+	if minute > 59:
+		raise ValueError(f"Invalid time string '{time_as_string}'")
+	if int(hour) > 12 and am_pm == 'am':
+		raise ValueError(f"Invalid time string '{time_as_string}'")
+
 	if not am_pm:
-		if int(hour) > 12:
+		if hour > 12:
 			am_pm = 'pm'
 		else:
 			am_pm = 'am'
-	if am_pm == 'pm':
-		hour = int(hour) + 12
+	if am_pm == 'pm' and hour < 12:
+		hour += 12
 
 	return datetime.time(int(hour), int(minute), 0)
 
