@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Datahenge LLC and contributors
+# Copyright (c) 2023, Datahenge LLC and contributors
 # For license information, please see license.txt
 
 import frappe
@@ -6,6 +6,14 @@ from frappe.model.document import Document
 from temporal import TDate
 
 class TemporalDates(Document):
+
+	@staticmethod
+	def get_document_by_calendar_date(calendar_date):
+		"""
+		Given a calendar date, return a Temporal Dates document.
+		"""
+		document_key = frappe.db.get_value("Temporal Dates", filters={"calendar_date": calendar_date}, fieldname="name", cache=True)
+		return frappe.get_doc("Temporal Dates", document_key)
 
 	def set_week_number(self, raise_on_exception=False):
 		"""
