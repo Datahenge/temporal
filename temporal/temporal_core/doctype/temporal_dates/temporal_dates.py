@@ -8,6 +8,14 @@ from temporal import date_to_week_tuple
 
 class TemporalDates(Document):
 
+	@staticmethod
+	def get_document_by_calendar_date(calendar_date):
+		"""
+		Given a calendar date, return a Temporal Dates document.
+		"""
+		document_key = frappe.db.get_value("Temporal Dates", filters={"calendar_date": calendar_date}, fieldname="name", cache=True)
+		return frappe.get_doc("Temporal Dates", document_key)
+
 	def set_week_number(self, raise_on_exception=False):
 		"""
 		Set the week number for this Calendar Date.
