@@ -407,7 +407,7 @@ def localize_datetime(any_datetime, any_timezone):
 		raise TypeError("Argument 'any_datetime' must be a Python datetime object.")
 
 	if any_datetime.tzinfo:
-		raise Exception(f"Datetime value {any_datetime} is already localized and time zone aware (tzinfo={any_datetime.tzinfo})")
+		raise ValueError(f"Datetime value {any_datetime} is already localized and time zone aware (tzinfo={any_datetime.tzinfo})")
 
 	# What kind of time zone object was passed?
 	type_name = type(any_timezone).__name__
@@ -511,7 +511,7 @@ def calc_future_dates(epoch_date, multiple_of_days, earliest_result_date, qty_of
 
 def date_to_datekey(any_date):
 	if not isinstance(any_date, datetime.date):
-		raise Exception(f"Argument 'any_date' should have type 'datetime.date', not '{type(any_date)}'")
+		raise TypeError(f"Argument 'any_date' should have type 'datetime.date', not '{type(any_date)}'")
 	date_as_string = any_date.strftime("%Y-%m-%d")
 	return f"temporal/day/{date_as_string}"
 
@@ -567,7 +567,7 @@ def get_week_by_anydate(any_date):
 
 	result_week = get_week_by_weeknum(date_dict['week_year'], date_dict['week_number'])
 	if not result_week:
-		raise Exception(f"Unable to construct a Week() for calendar date {any_date} (week_year={date_dict['week_year']}, week_number={date_dict['week_number']})")
+		raise RuntimeError(f"Unable to construct a Week() for calendar date {any_date} (week_year={date_dict['week_year']}, week_number={date_dict['week_number']})")
 	return result_week
 
 @frappe.whitelist()
@@ -920,7 +920,7 @@ def weekday_int_from_name(weekday_name, first_day_of_week='SUN'):
 	elif first_day_of_week == 'MON':
 		result = next(weekday['pos'] for weekday in WEEKDAYS_MON0 if weekday['name_short'] == weekday_short_name)
 	else:
-		raise Exception("Invalid first day of week (expected SUN or MON)")
+		raise ValueError("Invalid first day of week (expected SUN or MON)")
 	return result
 
 
