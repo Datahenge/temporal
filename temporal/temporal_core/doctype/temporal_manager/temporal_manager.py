@@ -51,6 +51,8 @@ class TemporalManager(Document):
 		start_date = datetime.date(int(frappe.db.get_single_value("Temporal Manager", "start_year")), 1, 1)  # January 1st of starting year.
 		end_date = datetime.date(int(frappe.db.get_single_value("Temporal Manager", "end_year")), 12, 31)  # December 31st of ending year.
 
+
+		frappe.db.sql("SET max_recursive_iterations = 20000;")  # IMPORTANT: Overrides the default value of 1000, which limits result to < 3 years.
 		with open(query_path, encoding="utf-8") as fstream:
 			query = fstream.readlines()
 			query = ''.join(query)
