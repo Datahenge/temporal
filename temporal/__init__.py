@@ -772,7 +772,7 @@ def date_to_iso_string(any_date):
 	Given a date, create an ISO String.  For example, 2021-12-26.
 	"""
 	if not isinstance(any_date, datetime.date):
-		raise Exception(f"Argument 'any_date' should have type 'datetime.date', not '{type(any_date)}'")
+		raise ValueError(f"Argument 'any_date' should have type 'datetime.date', not '{type(any_date)}'")
 	return any_date.strftime("%Y-%m-%d")
 
 def datetime_to_iso_string(any_datetime):
@@ -780,7 +780,7 @@ def datetime_to_iso_string(any_datetime):
 	Given a datetime, create a ISO String
 	"""
 	if not isinstance(any_datetime, datetime_type):
-		raise Exception(f"Argument 'any_date' should have type 'datetime', not '{type(any_datetime)}'")
+		raise ValueError(f"Argument 'any_date' should have type 'datetime', not '{type(any_datetime)}'")
 
 	return any_datetime.isoformat(sep=' ')  # Note: Frappe not using 'T' as a separator, but a space ''
 
@@ -876,6 +876,9 @@ def validate_datatype(argument_name, argument_value, expected_type, mandatory=Fa
 
 	NOTE: expected_type can be a single Type, or a tuple of Types.
 	"""
+
+	# TODO: Need an expected_precise_type (DailyOrder), and expected_inherited_type(Document)
+
 	# Throw error if missing mandatory argument.
 	NoneType = type(None)
 	if mandatory and isinstance(argument_value, NoneType):
