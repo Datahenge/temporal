@@ -583,11 +583,11 @@ def get_weeks_as_dict(year, from_week_num, to_week_num):
 	to_week_num = int(to_week_num)
 
 	if year not in range(MIN_YEAR, MAX_YEAR):
-		raise Exception(f"Invalid value '{year}' for argument 'year'")
+		raise ValueError(f"Invalid value '{year}' for argument 'year'")
 	if from_week_num not in range(1, 54):  # 53 possible week numbers.
-		raise Exception(f"Invalid value '{from_week_num}' for argument 'from_week_num'")
+		raise ValueError(f"Invalid value '{from_week_num}' for argument 'from_week_num'")
 	if to_week_num not in range(1, 54):  # 53 possible week numbers.
-		raise Exception(f"Invalid value '{to_week_num}' for argument 'to_week_num'")
+		raise ValueError(f"Invalid value '{to_week_num}' for argument 'to_week_num'")
 
 	weeks_list = []
 	for week_num in range(from_week_num, to_week_num + 1):
@@ -618,10 +618,10 @@ def week_generator(from_date, to_date):
 
 	from_week = get_week_by_anydate(from_date)  # Class of type 'Week'
 	if not from_week:
-		raise Exception(f"Unable to find a Week for date {from_date}. (Temporal week_generator() and Cache)")
+		raise RuntimeError(f"Unable to find a Week for date {from_date}. (Temporal week_generator() and Cache)")
 	to_week = get_week_by_anydate(to_date)  # Class of type 'Week'
 	if not to_week:
-		raise Exception(f"Unable to find a Week for date {to_date} (Temporal week_generator() and Cache)")
+		raise RuntimeError(f"Unable to find a Week for date {to_date} (Temporal week_generator() and Cache)")
 
 	# results = []
 
@@ -659,7 +659,7 @@ def get_date_metadata(any_date):
 	if isinstance(any_date, str):
 		any_date = datetime.datetime.strptime(any_date, '%Y-%m-%d').date()
 	if not isinstance(any_date, datetime.date):
-		raise Exception(f"Argument 'any_date' should have type 'datetime.date', not '{type(any_date)}'")
+		raise TypeError(f"Argument 'any_date' should have type 'datetime.date', not '{type(any_date)}'")
 
 	return temporal_redis.read_single_day(date_to_datekey(any_date))
 
@@ -737,7 +737,7 @@ def any_to_iso_date_string(any_date):
 		return any_date.strftime("%Y-%m-%d")
 	if isinstance(any_date, str):
 		return any_date
-	raise Exception(f"Argument 'any_date' can be a String or datetime.date only (found '{type(any_date)}')")
+	raise TypeError(f"Argument 'any_date' can be a String or datetime.date only (found '{type(any_date)}')")
 
 def datestr_to_date(date_as_string):
 	"""
@@ -808,6 +808,7 @@ def timestr_to_time(time_as_string):
 	am_pm = None
 	hour = None
 	minute = None
+	second = 0
 
 	if 'am' in time_as_string:
 		am_pm = 'am'
@@ -829,6 +830,10 @@ def timestr_to_time(time_as_string):
 	elif len(time_as_string) == 4:
 		hour = int(time_as_string[0:2])  # NOTE: Python string splicing; last index is not included.
 		minute = int(time_as_string[2:4]) # NOTE: Python string splicing; last index is not included.
+	elif len(time_as_string) == 6:
+		hour = int(time_as_string[0:2])  # NOTE: Python string splicing; last index is not included.
+		minute = int(time_as_string[2:4]) # NOTE: Python string splicing; last index is not included.
+		second = int(time_as_string[4:6]) # NOTE: Python string splicing; last index is not included.
 	else:
 		raise ValueError(f"Invalid time string '{time_as_string}'")
 
@@ -847,7 +852,7 @@ def timestr_to_time(time_as_string):
 	if am_pm == 'pm' and hour < 12:
 		hour += 12
 
-	return datetime.time(int(hour), int(minute), 0)
+	return datetime.time(int(hour), int(minute), second)
 
 # ----------------
 # Weekdays
@@ -877,7 +882,7 @@ def validate_datatype(argument_name, argument_value, expected_type, mandatory=Fa
 	NOTE: expected_type can be a single Type, or a tuple of Types.
 	"""
 
-	# TODO: Need an expected_precise_type (DailyOrder), and expected_inherited_type(Document)
+	# TODO: Support passing arguments for "expected_precise_type" (e.g. DailyOrder), and "expected_base_type" (e.g. Document)
 
 	# Throw error if missing mandatory argument.
 	NoneType = type(None)
