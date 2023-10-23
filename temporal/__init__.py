@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 import datetime
 from datetime import timedelta
 from datetime import date as dtdate, datetime as datetime_type
+import time
 
 # Third Party
 import dateutil.parser  # https://stackoverflow.com/questions/48632176/python-dateutil-attributeerror-module-dateutil-has-no-attribute-parse
@@ -22,7 +23,7 @@ from temporal import core
 from temporal import redis as temporal_redis  # alias to distinguish from Third Party module
 
 # Constants
-__version__ = '13.1.0'
+__version__ = '13.1.1'
 
 # Epoch is the range of 'business active' dates.
 EPOCH_START_YEAR = 2020
@@ -150,6 +151,26 @@ class TDate():
 	def as_iso_string(self):
 		return date_to_iso_string(self.date)
 
+	def unixtime_start(self, with_milliseconds=False):
+		"""
+		Return 12:00AM midnight as a Unix Timestamp.
+		"""
+		result = int(time.mktime(self.as_date().timetuple()))
+		if with_milliseconds:
+			result = result * 1000
+		return result
+
+	def unixtime_end(self, with_milliseconds=False):
+		"""
+		Return 11:59:59.999 PM as a Unix Timestamp.
+		"""
+		tomorrow = self.as_date() + timedelta(days=1)
+		result = int(time.mktime(tomorrow.timetuple()))
+		if with_milliseconds:
+			result = result * 1000
+		return result - 1  # subtract 1 integer
+
+
 class Week():
 	""" A calendar week, starting on Sunday, where the week containing January 1st is always week #1 """
 	def __init__(self, week_year, week_number, set_of_days, date_start, date_end):
@@ -170,6 +191,7 @@ class Week():
 		message = f"""Week Number: {self.week_number}\nYear: {self.week_year}\nWeek Number (String): {self.week_number_str}
 Days: {", ".join(self.list_of_day_strings())}\nStart: {self.date_start}\nEnd: {self.date_end}"""
 		print(message)
+
 
 class Builder():
 	"""
