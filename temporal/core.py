@@ -13,7 +13,7 @@ else:
 import frappe  # pylint: disable=wrong-import-position
 
 if sys.version_info.major != 3:
-	raise Exception("Temporal is only available for Python 3.")
+	raise RuntimeError("Temporal is only available for Python 3.")
 
 
 def is_datetime_naive(any_datetime):
@@ -34,7 +34,7 @@ def get_system_timezone():
 	"""
 	system_time_zone = frappe.db.get_system_setting('time_zone')
 	if not system_time_zone:
-		raise Exception("Please configure a Time Zone under 'System Settings'.")
+		raise RuntimeError("Please configure a Time Zone under 'System Settings'.")
 
 	# Python 3.8 or less:
 	if sys.version_info.minor < 9:
