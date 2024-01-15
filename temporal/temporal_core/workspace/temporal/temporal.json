@@ -8,7 +8,7 @@
  "doctype": "Workspace",
  "extends_another_page": 0,
  "hide_custom": 0,
- "icon": "check",
+ "icon": "clock",
  "idx": 0,
  "is_default": 0,
  "is_standard": 1,
@@ -42,7 +42,7 @@
    "type": "Link"
   }
  ],
- "modified": "2022-03-07 19:40:33.112261",
+ "modified": "2024-01-12 15:01:37.799210",
  "modified_by": "Administrator",
  "module": "Temporal Core",
  "name": "Temporal",

@@ -467,6 +467,8 @@ def date_range(start_date, end_date):
 	Generator for an inclusive range of dates.
 	It's very weird this isn't part of Python Standard Library or datetime  :/
 	"""
+	validate_datatype("start_date", start_date, (str, dtdate), True)
+	validate_datatype("end_date", end_date, (str, dtdate), True)
 
 	# As always, convert ERPNext strings into dates...
 	start_date = any_to_date(start_date)
@@ -493,7 +495,6 @@ def date_ranges_to_dates(date_ranges: list) -> set:
 	args:
 		date_ranges: List of Tuples, for example: [ (2023-10-01, 2023-10-19) , (2023-11-15, 2023-11-30), (2023-12-09, 2023-12-13)]
 	"""
-	from temporal import any_to_date, date_range
 
 	validate_datatype("date_ranges", date_ranges, (set, list))
 	if not date_ranges:
@@ -501,8 +502,8 @@ def date_ranges_to_dates(date_ranges: list) -> set:
 
 	result = set()
 	for each_tuple in date_ranges:
-		start_date = any_to_date(each_tuple[0])
-		end_date = any_to_date(each_tuple[1])
+		start_date = any_to_date(each_tuple[0]) or any_to_date("1900-01-01")
+		end_date = any_to_date(each_tuple[1]) or any_to_date("2199-12-31")
 
 		# Interestingly, Python will not allow the following 2 statements to be combined; it's a syntax error
 		temp_results = list(date_range(start_date, end_date))
