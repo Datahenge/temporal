@@ -4,6 +4,7 @@
 from __future__ import unicode_literals
 
 # Standard Library
+import calendar
 import datetime
 from datetime import timedelta
 from datetime import date as dtdate, datetime as datetime_type
@@ -151,25 +152,29 @@ class TDate():
 	def as_iso_string(self):
 		return date_to_iso_string(self.date)
 
-	def unixtime_start(self, with_milliseconds=False):
+	def unixtime_start(self, timezone, with_milliseconds=False):
 		"""
 		Return 12:00AM midnight as a Unix Timestamp.
 		"""
-		result = int(time.mktime(self.as_date().timetuple()))
+		# NOTE: January 17th 2024: Unlike previous incarnations, this function does not rely on the Host operating system's timezone.
+		datetime_start_naive = datetime_type.combine(self.as_date(), datetime_type.min.time())
+		datetime_start = core.make_datetime_tz_aware(datetime_start_naive, tzinfo=timezone)
+		result = calendar.timegm(datetime_start.utctimetuple())
 		if with_milliseconds:
 			result = result * 1000
 		return result
 
-	def unixtime_end(self, with_milliseconds=False):
+	def unixtime_end(self, timezone, with_milliseconds=False):
 		"""
 		Return 11:59:59.999 PM as a Unix Timestamp.
 		"""
-		tomorrow = self.as_date() + timedelta(days=1)
-		result = int(time.mktime(tomorrow.timetuple()))
+		# NOTE: January 17th 2024: Unlike previous incarnations, this function does not rely on the Host operating system's timezone.
+		datetime_end_naive = datetime_type.combine(self.as_date() + timedelta(days=1), datetime_type.min.time())  # Midnight of the Next Day
+		datetime_end = core.make_datetime_tz_aware(datetime_end_naive, tzinfo=timezone)
+		result = calendar.timegm(datetime_end.utctimetuple()) - 1  # Subtract 1 integer to get 11:59:59
 		if with_milliseconds:
 			result = result * 1000
-		return result - 1  # subtract 1 integer
-
+		return result
 
 class Week():
 	""" A calendar week, starting on Sunday, where the week containing January 1st is always week #1 """
@@ -986,6 +991,7 @@ def date_to_datetime(any_date):
 	Return a Date as a Datetime set to midnight.
 	"""
 	return datetime_type.combine(any_date, datetime_type.min.time())
+
 
 def date_to_scalar(any_date):
 	"""

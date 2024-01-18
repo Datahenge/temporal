@@ -72,14 +72,14 @@ def make_datetime_naive(any_datetime):
 	return any_datetime.replace(tzinfo=None)
 
 
-def make_datetime_tz_aware(naive_datetime):
+def make_datetime_tz_aware(naive_datetime, tzinfo=None):
 	"""
 	Add the ERP system time zone to any naive datetime.
 	"""
 	if naive_datetime.tzinfo:
 		raise ValueError("Datetime is already localized and time zone aware.")
 
-	return naive_datetime.replace(tzinfo=get_system_timezone())
+	return naive_datetime.replace(tzinfo=tzinfo or get_system_timezone())
 
 
 def safeset(any_dict, key, value, as_value=False):
