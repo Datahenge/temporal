@@ -5,6 +5,7 @@ from enum import Enum
 import json
 from typing import NamedTuple
 
+import frappe
 from temporal import validate_datatype
 from temporal.helpers import dict_to_dateless_dict
 
@@ -164,7 +165,7 @@ class ResultBase():
 	def get_info_messages(self):
 		return [ each for each in self._messages if each.message_level == 'Info']  # MessageLevel.INFO
 
-	def add_data_to_crs(self, crs_instance):
+	def add_result_to_crs(self, crs_instance):
 		"""
 		Add this result's data to a Common Response Schmea for the FTP Middleware.
 		"""
@@ -172,3 +173,9 @@ class ResultBase():
 
 		for key, value in converted_dict.items():
 			crs_instance.add_data(key, value)  # important to send as JSON, to convert things like Date and DateTime to string.
+
+		for each_message in self.get_all_messages():
+			if each_message.audience in (MessageAudience.ALL, MessageAudience.INTERNAL):
+				crs_instance.add_internal_message(str(each_message))
+			if each_message.audience in (MessageAudience.ALL, MessageAudience.CUSTOMER):
+				crs_instance.add_customer_message(str(each_message))
