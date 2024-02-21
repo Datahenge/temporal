@@ -81,8 +81,7 @@ class OutcomeType(str, Enum):
 	INTERNAL_ERROR = 'Runtime Error'  # unhandled Exceptions
 	NONE = "None"  # used when something hasn't happened yet
 
-
-class ResultBase():
+class ResultBase():  # pylint: disable=too-many-instance-attributes
 	"""
 	Extensible class for operations with Results and Related Data
 	Examples include is base class with specific ones (Change Order Date, Un-Skip, Un-Pause, Cart Merging, Anon Registration)
@@ -92,7 +91,7 @@ class ResultBase():
 		self.outcome: OutcomeType = OutcomeType.SUCCESS
 		self._messages = []
 		self._data: dict = {}
-
+		self._available_message_tags = []
 		self._should_raise_exceptions = False  # should the consumer of this Result throw a Python Exception?
 		self.runtime_exception = None
 
@@ -149,9 +148,20 @@ class ResultBase():
 		return False
 
 	# Message Functions
-	def add_message(self, message):
-		validate_datatype("message", message, ResultMessage, True)
-		self._messages.append(message)
+	def add_message(self, audience, message_level, message_string, tags=None):
+
+		# Validate the tags
+		if tags:
+			if isinstance(tags, str):
+				tags = [ tags ]
+			for each_tag in tags:
+				if each_tag not in self._available_message_tags:
+					raise ValueError(f"Invalid tag value '{each_tag}' passed to ResultBase.add_message()")
+		new_message = ResultMessage.new(audience=audience, level=message_level, message_string=message_string, tags=tags)
+		self._messages.append(new_message)
+		# Error Message leads to Error Outcome
+		if message_level == MessageLevel.ERROR:
+			self.outcome: OutcomeType = OutcomeType.ERROR
 
 	def get_all_messages(self):
 		return self._messages
@@ -164,6 +174,8 @@ class ResultBase():
 
 	def get_info_messages(self):
 		return [ each for each in self._messages if each.message_level == 'Info']  # MessageLevel.INFO
+
+	# Common Response Schema
 
 	def add_result_to_crs(self, crs_instance):
 		"""
