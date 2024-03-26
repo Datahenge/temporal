@@ -1,3 +1,0 @@
-# Not yet; this would require refactoring time I don't have right now
-frappe
-# temporal-lib~=0.0.1
