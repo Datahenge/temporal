@@ -5,7 +5,7 @@ from enum import Enum
 import json
 from typing import NamedTuple
 
-import frappe
+import frappe  # pylint: disable=unused-import
 
 from temporal import validate_datatype
 from temporal.helpers import dict_to_dateless_dict
