@@ -69,7 +69,7 @@ class MessageLevel(str, Enum):
 class MessageAudience(str, Enum):
 	ALL = 'All'
 	INTERNAL = 'Internal'
-	CUSTOMER = 'External'
+	EXTERNAL = 'External'
 
 class ResultMessage(NamedTuple):
 	audience: MessageAudience
@@ -219,5 +219,5 @@ class ResultBase():  # pylint: disable=too-many-instance-attributes
 
 			if each_message.audience in (MessageAudience.ALL, MessageAudience.INTERNAL):
 				crs_instance.add_internal_message(str(each_message))
-			if each_message.audience in (MessageAudience.ALL, MessageAudience.CUSTOMER):
+			if each_message.audience in (MessageAudience.ALL, MessageAudience.EXTERNAL):
 				crs_instance.add_customer_message(str(each_message))
