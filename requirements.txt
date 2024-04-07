@@ -1,3 +1,0 @@
-# Python requirements for Temporal App
-frappe
-temporal-lib>=0.0.5

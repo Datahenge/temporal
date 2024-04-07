@@ -1,0 +1,20 @@
+[project]
+name = "temporal"
+authors = [
+    { name = "Datahenge LLC", email = "brian@datahenge.com"},
+]
+description = "Time after Time"
+requires-python = ">=3.10"
+readme = "README.md"
+dynamic = [
+	"version"
+]
+license = {text = "GNU LESSER GENERAL PUBLIC LICENSE"}
+dependencies = [
+]
+
+[tool.setuptools]
+py-modules = ["temporal"]
+
+[tool.setuptools.dynamic]
+version = {attr = "temporal.__version__"}
