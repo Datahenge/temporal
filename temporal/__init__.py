@@ -16,7 +16,6 @@ from dateutil.rrule import SU, MO, TU, WE, TH, FR, SA  # noqa F401
 # Temporal Lib
 import temporal_lib
 
-from temporal_lib import int_to_ordinal_string as make_ordinal
 from temporal_lib.core import (
 	localize_datetime,
 	calc_future_dates,
@@ -35,6 +34,7 @@ from temporal_lib.tlib_types import (
 	date_to_iso_string,
 	date_to_datetime_midnight,
 	datetime_to_iso_string,
+	int_to_ordinal_string as make_ordinal,
 	is_date_string_valid,
 	timestr_to_time,
 	validate_datatype
