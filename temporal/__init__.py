@@ -58,7 +58,7 @@ from temporal import core
 from temporal import redis as temporal_redis  # alias to distinguish from Third Party module
 
 # Constants
-__version__ = '13.3.0'
+__version__ = '15.0.0'
 
 # Epoch is the range of 'business active' dates.
 EPOCH_START_YEAR = 2020
