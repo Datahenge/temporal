@@ -9,6 +9,8 @@ readme = "README.md"
 requires-python = ">=3.10,<3.13"
 
 dependencies = [
+    "frappe >= 15,<16",
+    "pytz-deprecation-shim",
     "temporal-lib == 0.0.7",
 ]
 
