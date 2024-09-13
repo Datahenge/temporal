@@ -11,6 +11,7 @@ dynamic = [
 ]
 license = {text = "GNU LESSER GENERAL PUBLIC LICENSE"}
 dependencies = [
+    "temporal-lib~=0.0.7 "
 ]
 
 [tool.setuptools]
