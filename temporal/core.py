@@ -11,11 +11,11 @@ from temporal_lib.core import (
 	is_datetime_naive,
 	localize_datetime,
 	make_datetime_naive,
-	TimeZone
 )
 from temporal_lib.tlib_date import (
 	datetime_to_sql_datetime
 )
+from temporal_lib.tlib_timezone import TimeZone
 
 # Frappe
 import frappe

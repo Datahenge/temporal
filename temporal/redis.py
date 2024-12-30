@@ -131,8 +131,6 @@ def write_single_day(day_dict):
 	if not isinstance(day_dict, dict):
 		raise TypeError("Argument 'day_dict' should be a Python Dictionary.")
 
-	frappe.whatis(day_dict)
-
 	hash_key = _date_to_daykey(day_dict['date'])
 	cache().delete_key(hash_key)
 

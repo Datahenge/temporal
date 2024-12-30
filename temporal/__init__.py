@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 # Standard Library
 import datetime
 from datetime import timedelta
-from datetime import date as DateType, datetime as datetime_type
+from datetime import date as DateType, datetime as DateTimeType
 
 # Third Party
 import dateutil.parser  # https://stackoverflow.com/questions/48632176/python-dateutil-attributeerror-module-dateutil-has-no-attribute-parse
@@ -22,9 +22,11 @@ from temporal_lib.core import (
 	date_generator_type_1,
 	date_is_between, date_range,
 	date_range_from_strdates,
+	date_ranges_to_dates,
 	get_earliest_date,
 	get_latest_date
 )
+
 from temporal_lib.tlib_types import (
 	any_to_iso_date_string,
 	any_to_date,
@@ -311,3 +313,32 @@ def date_to_scalar(any_date):
 	"""
 	scalar_value = frappe.db.get_value("Temporal Dates", filters={"calendar_date": any_date}, fieldname="scalar_value", cache=True)
 	return scalar_value
+
+
+def date_to_boolean(any_date) -> bool:
+	"""
+	In version 15, Frappe began substituting '1900-01-01' for empty or missing dates.
+	This function helps handle this by representing '1900-01-01' as a NoneType.
+	"""
+	if not isinstance(any_date, DateType):
+		raise TypeError("Argument 'any_date' should be a Python Date.")
+	if not any_date:
+		return False
+	return any_date != datetime.datetime(1, 1, 1).date()
+
+
+def datetime_to_boolean(any_datetime) -> bool:
+	"""
+	In version 15, Frappe began substituting '1900-01-01' for empty or missing dates.
+	This function helps handle this by representing '1900-01-01' as a NoneType.
+	"""
+	if not isinstance(any_datetime, DateTimeType):
+		raise TypeError("Argument 'any_date' should be a Python DateTime.")
+	if not any_datetime:
+		return False
+	return any_datetime != datetime.datetime(1, 1, 1)
+
+
+# TODO
+# Rust Option: Some(T), None
+# Rust Result: Ok(T), Err(E)
