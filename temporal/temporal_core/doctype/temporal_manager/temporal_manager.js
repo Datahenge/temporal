@@ -3,7 +3,6 @@
 
 frappe.ui.form.on('Temporal Manager', {
 	refresh: function(frm) {
-
 	},
 
 	btn_show_weeks:  function(frm) {
