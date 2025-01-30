@@ -284,13 +284,15 @@ def get_week_by_weeknum(year, week_number):
 	week_dict = temporal_redis.read_single_week(year, week_number, )
 
 	if not week_dict:
-		print(f"Warning: No value in Redis for year {year}, week number {week_number}.  Rebuilding...")
+		frappe.msgprint(f"Warning: No value in Redis for year {year}, week number {week_number}.  Rebuilding...", to_console=True)
 		Builder.build_all()
 		if (not week_dict) and frappe.db.get_single_value('Temporal Manager', 'debug_mode'):
 			raise KeyError(f"WARNING: Unable to find Week in Redis for year {year}, week {week_number}.")
 		return None
-
-	return Week((year, week_number))
+	result = Week((year, week_number))
+	if not result:
+		raise RuntimeError(f"Unable to construct a Week for year {year}, week number {week_number}")
+	return result
 
 
 @frappe.whitelist()

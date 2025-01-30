@@ -13,7 +13,7 @@ from six import iteritems
 
 # Frappe
 import frappe
-from frappe import cache, msgprint, safe_decode
+from frappe import msgprint, safe_decode
 
 #  Redis Data Model:
 #  I'm choosing to uses forward slash (/) to build Compound Keys
@@ -73,9 +73,9 @@ def write_years(years_tuple, verbose=False):
 	""" Create Redis list of Calendar Years. """
 	if not isinstance(years_tuple, tuple):
 		raise TypeError("Argument 'years_tuple' should be a Python Tuple.")
-	cache().delete_key("temporal/years")
+	frappe.cache().delete_key("temporal/years")
 	for year in years_tuple:
-		cache().sadd("temporal/years", year)  # add to set.
+		frappe.cache().sadd("temporal/years", year)  # add to set.
 	if verbose:
 		msgprint(f"Temporal Years: {read_years()}")
 
@@ -85,9 +85,9 @@ def write_single_year(year_dict, verbose=False):
 	if not isinstance(year_dict, dict):
 		raise TypeError("Argument 'year_dict' should be a Python Dictionary.")
 	year_key = _year_to_yearkey(int(year_dict['year']))
-	cache().delete_key(year_key)
+	frappe.cache().delete_key(year_key)
 	for key,value in year_dict.items():
-		cache().hset(year_key, key, value)
+		frappe.cache().hset(year_key, key, value)
 	if verbose:
 		print(f"\u2713 Created temporal year '{year_key}' in Redis.")
 
@@ -98,7 +98,7 @@ def update_year(year, key, value, verbose=False):
 	if not isinstance(year, int):
 		raise TypeError("Argument 'year' should be a Python integer.")
 	year_key = _year_to_yearkey(year)
-	cache().hset(year_key, key, value)
+	frappe.cache().hset(year_key, key, value)
 	if verbose:
 		pass
 
@@ -106,9 +106,9 @@ def write_weeks(weeks_tuple, verbose=False):
 	""" Create Redis list of Weeks. """
 	if not isinstance(weeks_tuple, tuple):
 		raise TypeError("Argument 'weeks_tuple' should be a Python Tuple.")
-	cache().delete_key("temporal/weeks")
+	frappe.cache().delete_key("temporal/weeks")
 	for week in weeks_tuple:
-		cache().sadd("temporal/weeks", week)  # add to set.
+		frappe.cache().sadd("temporal/weeks", week)  # add to set.
 	if verbose:
 		msgprint(f"Temporal Weeks: {read_weeks()}")
 
@@ -117,9 +117,9 @@ def write_single_week(week_dict, verbose=False):
 	if not isinstance(week_dict, dict):
 		raise TypeError("Argument 'week_dict' should be a Python Dictionary.")
 	week_key = _get_weekkey(week_dict['year'], week_dict['week_number'])
-	cache().delete_key(week_key)
+	frappe.cache().delete_key(week_key)
 	for key,value in week_dict.items():
-		cache().hset(week_key, key, value)
+		frappe.cache().hset(week_key, key, value)
 	if verbose:
 		print("Created a Temporal Week '{week_key}' in Redis:\n")
 		pprint(read_single_week(week_dict['year'], week_dict['week_number']), depth=6)
@@ -132,15 +132,15 @@ def write_single_day(day_dict):
 		raise TypeError("Argument 'day_dict' should be a Python Dictionary.")
 
 	hash_key = _date_to_daykey(day_dict['date'])
-	cache().delete_key(hash_key)
+	frappe.cache().delete_key(hash_key)
 
 	date_as_string = day_dict['date'].strftime("%Y-%m-%d")
 	for key, value in day_dict.items():
 		if key == 'date':
 			# No point storing datetime.date; just store a sortable date string: YYYY-MM-DD
-			cache().hset(hash_key, key, date_as_string)
+			frappe.cache().hset(hash_key, key, date_as_string)
 		else:
-			cache().hset(hash_key, key, value)
+			frappe.cache().hset(hash_key, key, value)
 
 # ------------
 # READING FROM REDIS
@@ -150,7 +150,7 @@ def read_years():
 	"""
 	Returns a Python Tuple containing year integers.
 	"""
-	year_tuple = tuple( int(year) for year in cache().smembers('temporal/years') )
+	year_tuple = tuple( int(year) for year in frappe.cache().smembers('temporal/years') )
 	return sorted(year_tuple)  # redis does not naturally store Sets as sorted.
 
 
@@ -159,7 +159,7 @@ def read_single_year(year):
 	Returns a Python Dictionary containing year-by-year data.
 	"""
 	year_key = _year_to_yearkey(year)
-	redis_hash =  cache().hgetall(year_key)
+	redis_hash = frappe.cache().hgetall(year_key)
 	if not redis_hash:
 		if frappe.db.get_single_value('Temporal Manager', 'debug_mode'):
 			raise KeyError(f"Temporal was unable to find Redis key with name = {year_key}")
@@ -169,7 +169,7 @@ def read_single_year(year):
 
 def read_days():
 	""" Returns a Python Tuple containing Day Keys. """
-	day_tuple = tuple( day_key for day_key in cache().smembers('temporal/days') )
+	day_tuple = tuple( day_key for day_key in frappe.cache().smembers('temporal/days') )
 	return sorted(day_tuple)  # Redis Sets are not stored in the Redis database.
 
 
@@ -177,7 +177,7 @@ def read_single_day(day_key):
 	""" Returns a Python Dictionary containing a Single Day. """
 	if not day_key.startswith('temporal'):
 		raise ValueError("All Redis key arguments should begin with 'temporal'")
-	redis_hash =  cache().hgetall(day_key)
+	redis_hash = frappe.cache().hgetall(day_key)
 	if not redis_hash:
 		if frappe.db.get_single_value('Temporal Manager', 'debug_mode'):
 			raise KeyError(f"Temporal was unable to find Redis key with name = {day_key}")
@@ -187,14 +187,14 @@ def read_single_day(day_key):
 
 def read_weeks():
 	""" Returns a Python Tuple containing Week Keys. """
-	week_tuple = tuple( week for week in cache().smembers('temporal/weeks') )
+	week_tuple = tuple( week for week in frappe.cache().smembers('temporal/weeks') )
 	return sorted(week_tuple)  # redis does not naturally store Sets as sorted.
 
 
 def read_single_week(year, week_number):
 	""" Reads Redis, and returns a Python Dictionary containing a single Week. """
 	week_key = _get_weekkey(year, week_number)
-	redis_hash =  cache().hgetall(week_key)
+	redis_hash = frappe.cache().hgetall(week_key)
 	if not redis_hash:
 		if frappe.db.get_single_value('Temporal Manager', 'debug_mode'):
 			raise KeyError(f"Temporal was unable to find Redis key with name = {week_key}")
