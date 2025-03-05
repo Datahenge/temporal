@@ -1,6 +1,8 @@
 -- Some special syntax that makes this work
 
-SET @StartDate := '2021-01-01';
+-- TODO:  PyPika?
+
+SET @StartDate  := '2021-01-01';
 SET @CutoffDate := '2071-12-31';
 TRUNCATE TABLE `tabTemporal Dates`;
 

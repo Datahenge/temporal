@@ -42,7 +42,7 @@ class TemporalManager(Document):
 	@frappe.whitelist()
 	def button_rebuild_temporal_dates(self):
 		"""
-		Open the .SQL file in the module, and execute to populate `tabTemporal Dates`
+		Open the .SQL file in the module, and execute to populate "tabTemporal Dates"
 		"""
 		print("Rebuilding the Temporal Dates table...")
 
@@ -51,7 +51,7 @@ class TemporalManager(Document):
 		if not query_path.exists():
 			raise FileNotFoundError(f"Cannot ready query file '{query_path}'")
 
-		frappe.db.sql("TRUNCATE TABLE `tabTemporal Dates`;")
+		frappe.db.sql("""TRUNCATE TABLE "tabTemporal Dates";""")
 
 		start_date = datetime.date(int(frappe.db.get_single_value("Temporal Manager", "start_year")), 1, 1)  # January 1st of starting year.
 		end_date = datetime.date(int(frappe.db.get_single_value("Temporal Manager", "end_year")), 12, 31)  # December 31st of ending year.
@@ -64,7 +64,7 @@ class TemporalManager(Document):
 			query = query.replace('@EndDate', f"'{end_date}'")
 			frappe.db.sql(query)
 
-		query = """SELECT count(*) FROM `tabTemporal Dates`; """
+		query = """SELECT count(*) FROM "tabTemporal Dates"; """
 		row_count = frappe.db.sql(query)
 		if row_count:
 			row_count = row_count[0][0]
