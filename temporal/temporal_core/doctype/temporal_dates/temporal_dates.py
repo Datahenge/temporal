@@ -47,4 +47,4 @@ def populate_week_numbers():
 			doc_temporal_date.save()
 			frappe.db.commit()
 		except Exception as ex:
-			print(repr(ex))
+			print(f"populate_week_numbers() : {repr(ex)}")
