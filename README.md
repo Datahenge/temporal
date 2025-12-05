@@ -2,6 +2,8 @@
 
 An ERPNext [App](https://frappeframework.com/docs/user/en/basics/apps) that integrates with Redis to rapidly provide calendar information.
 
+⚠️  The default branch `version-15` is now using PostgreSQL syntax.  I've created an alternate branch, `version-15-mariadb` to support the original syntax.
+
 ### Documentation
 Most of my documentation [can be found here](https://datahenge.github.io/temporal/) using GitHub Pages.
 
