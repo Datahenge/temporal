@@ -97,12 +97,14 @@ class ResultMessage(NamedTuple):
 	def __str__(self):
 		return f"{self.message_level} : {self.message}"
 
+
 class OutcomeType(str, Enum):
 	SUCCESS = 'Success'
 	PARTIAL = 'Partial Success'  # For example, success with Warnings, dropped Order Lines.
 	ERROR = 'Error'
 	INTERNAL_ERROR = 'Runtime Error'  # unhandled Exceptions
 	NONE = "None"  # used when something hasn't happened yet
+
 
 class ResultBase():  # pylint: disable=too-many-instance-attributes
 	"""
@@ -117,7 +119,6 @@ class ResultBase():  # pylint: disable=too-many-instance-attributes
 		self._available_message_tags = []
 		self._should_raise_exceptions = False  # should the consumer of this Result throw a Python Exception?
 		self.runtime_exception = None
-
 		self.validate_types = bool(validate_types)
 		self.validate_schemas = bool(validate_schemas)
 
